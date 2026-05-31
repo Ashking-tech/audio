@@ -1,25 +1,13 @@
 package main
 
 import (
-	"fmt"
-	"os"
+"fmt"	
+"github.com/Ashking-tech/audio/decode"
 )
 
-func ReadAudioFile(path string) ([]byte,error){
-	audioBytes,err := os.ReadFile(path)
-	if err != nil {
-		fmt.Printf("error reading file: %v\n",err)
-		return audioBytes,err
-	}
-
-	fmt.Print("succesfully read",len(audioBytes),"bytes")
-   return audioBytes,err
-	
-
-}
 
 func main(){
-	data,err := ReadAudioFile("audio.mp3")
+	data,err := decode.DecodeWav("output.wav")
 	if err != nil {
 		fmt.Println(err)
 		return

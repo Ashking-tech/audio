@@ -31,3 +31,4 @@ func main() {
 }
 
 
+func BuildSpectogram (samples []float64,sampleRate int)[][]float64

@@ -166,3 +166,4 @@ func Normalize(samples []int16) []float64 {
 
 	return normalized
 }
+

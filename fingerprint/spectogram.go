@@ -4,10 +4,16 @@ import (
 	"fmt"
 	"math"
 	"math/cmplx"
+	"os/signal"
 
 	"gonum.org/v1/gonum/dsp/fourier"
 )
 
+
+type Spectogram struct {
+	WindowSize int 
+	HopSize int
+}
 
 func GenerateSineWave(
 	frequency float64,
@@ -63,4 +69,17 @@ func AnalyzeFrequency(samples []float64, sampleRate int) float64 {
 	fmt.Println("Detected frequency:", frequency)
 
 	return frequency
+}
+
+func (s *Spectogram)GenerateSpectogram(signal []float64 ) [][]float64{
+	var spectogram [][] float64 //spectogram itself
+	windowSize := s.WindowSize // windowSize means the part/chunk of the audio samples , 1 window = 4096 samples
+	hopSize := s.HopSize //hopSize means how far ahead to move before the next WindowSize
+
+	//iterating through the signal
+	for start := 0 start+windowSize <= len(signal); start += hopsize {
+		//process one frame
+	}
+
+	
 }

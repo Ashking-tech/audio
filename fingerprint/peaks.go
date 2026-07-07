@@ -1,6 +1,7 @@
 //pseudo code
+package fingerprint
 
-type peak struct {
+type Peak struct {
 	TimeBin int  //frame index
 	FreqBin int  //freq bin index
 	Magnitude float64
@@ -16,7 +17,7 @@ func FindPeaks(spec [][]float64,minNeighbourWindow int) []Peak {
 
 	var peaks []Peak
 	for t := 0; t < len(spec); t++ {
-		for f := 0 f < len(spec[t]; f++){
+		for f := 0; f < len(spec[t]); f++ {
 			//spec t f in the cell
 			center := spec[t][f]
 			isPeak := true

@@ -29,4 +29,7 @@ func main() {
 
 	peaks := fingerprint.FindPeaks(result, 20)
 	fmt.Println("Peaks found:", len(peaks))
+
+	fps := fingerprint.FingerprintPeaks(peaks, 10)
+fmt.Println("Fingerprints:", (fps))
 }

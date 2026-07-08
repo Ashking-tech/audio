@@ -1,20 +1,26 @@
 package db
 
-
 import (
 	"database/sql"
-	_"modernc.org/sqlite"
+	"fmt"
+
+	_ "modernc.org/sqlite"
 )
 
 var db *sql.DB
 
-func InsertSong(db,name,fps)(){
-	_,err := db.Exec(
+func insertsong(db,name,fps)(){
 
-		"INSERT INTO fingerprints(hash,song_id, anchor_time) VALUES (?,?,?)",
-		hash,
-		songID,
-		anchorTime,
-	)
-return err
+	result, err := db.Exec("insert into songs (name) values (?)", name)
+	if err != nil {
+		return 0, fmt.Errorf("insert songs: %w",err)
+	}
+	
+	id, err := result.LastInsertId()
+	if err != nil {
+		return 0, fmt.Errorf("get songs id : %w",err)
+	}
+
+	return id,nil
+	
 }

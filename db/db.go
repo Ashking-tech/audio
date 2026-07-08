@@ -28,4 +28,7 @@ func InitializeDB(path string) (*sql.DB,error) {
 		return nil,err
 	}
 	return db,nil
+
+
+	
 }

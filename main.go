@@ -47,4 +47,10 @@ if err != nil {
 
 }
 fmt.Println("inserted song ID:", songID)
+
+match,err := db.LookUpMatches(database,fps)
+if err != nil {
+	panic(err)
+}
+fmt.Println("best match:",match)
 }

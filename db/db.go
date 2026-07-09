@@ -23,6 +23,7 @@ func InitializeDB(path string) (*sql.DB,error) {
 			song_id INTEGER,
 			FOREIGN KEY (song_id) REFERENCES songs(id)
 		);
+		CREATE INDEX IF NOT EXISTS idx_hash ON fingerprints(hash);
 	`)
 	if err != nil {
 		return nil,err

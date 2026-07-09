@@ -2,7 +2,7 @@ package db
 
 import (
 	"database/sql"
-	_"modernc.org/sqlite"
+	_ "modernc.org/sqlite"
 )
 
 func InitializeDB(path string) (*sql.DB,error) {

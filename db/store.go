@@ -10,7 +10,7 @@ import (
 
 var db *sql.DB
 
-func insertsong(db,name,fps)(){
+func Insertsong(db *sql.DB, name string, fps []fingerprint.Fingerprint) (int64, error) {
 
 	result, err := db.Exec("insert into songs (name) values (?)", name)
 	if err != nil {
@@ -22,7 +22,7 @@ func insertsong(db,name,fps)(){
 		return 0, fmt.Errorf("get songs id : %w",err)
 	}
 
-	return id,nil
+	return id,InsertFingerprints(db,id,fps)
 
 	
 	

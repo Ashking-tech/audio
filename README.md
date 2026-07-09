@@ -10,9 +10,9 @@
 - [x] **Spectrogram image export** (`fingerprint/spectogram.go` — `SpectrogramImage`)
 - [x] **Sine wave generator** (`fingerprint/spectogram.go` — `GenerateSineWave`)
 - [x] **Basic frequency analysis** (`fingerprint/spectogram.go` — `AnalyzeFrequency`)
-- [ ] **Peak finding / constellation map** — local maxima in time-frequency grid
-- [ ] **Fingerprint hashing** — pair peaks, create hash, store anchor time
-- [ ] **Storage (in-memory / JSON)** — song catalog + hash lookup tables
+- [x] **Peak finding / constellation map** — local maxima in time-frequency grid
+- [x] **Fingerprint hashing** — pair peaks, create hash, store anchor time
+- [x] **Storage (in-memory / JSON)** — song catalog + hash lookup tables
 - [ ] **Matching / offset alignment scoring** — group by song ID, find dominant offset
 - [ ] **Mic recording** (`portaudio`) — capture audio from microphone
 - [ ] **CLI** — `add-song`, `listen`, `list-songs` commands

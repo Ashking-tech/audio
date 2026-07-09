@@ -4,9 +4,11 @@ import (
 	"fmt"
 	"github.com/Ashking-tech/audio/decode"
 	"github.com/Ashking-tech/audio/fingerprint"
+	"github.com/Ashking-tech/audio/db"
 )
 
 func main() {
+
 	samples, err := decode.DecodeWav("output.wav")
 	if err != nil {
 		panic(err)
@@ -31,5 +33,18 @@ func main() {
 	fmt.Println("Peaks found:", len(peaks))
 
 	fps := fingerprint.FingerprintPeaks(peaks, 10)
-fmt.Println("Fingerprints:", (fps))
+fmt.Println("Fingerprints:", len(fps))
+
+database,err :=	db.InitializeDB("fingerprints.db")
+if err != nil {
+	panic(err)
+}
+defer database.Close()
+
+songID, err := db.Insertsong(database,"output.wav",fps)
+if err != nil {
+	panic(err)
+
+}
+fmt.Println("inserted song ID:", songID)
 }

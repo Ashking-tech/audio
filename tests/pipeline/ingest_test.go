@@ -1,4 +1,4 @@
-package pipeline
+package pipeline_test
 
 import (
 	"database/sql"
@@ -6,6 +6,7 @@ import (
 
 	"github.com/Ashking-tech/audio/db"
 	"github.com/Ashking-tech/audio/fingerprint"
+	"github.com/Ashking-tech/audio/pipeline"
 	_ "modernc.org/sqlite"
 )
 
@@ -22,7 +23,7 @@ func setupDB(t *testing.T) *sql.DB {
 func TestMatchRecording_noMatch(t *testing.T) {
 	database := setupDB(t)
 	samples := fingerprint.GenerateSineWave(440, 0.5, 44100)
-	match, err := MatchRecording(database, samples)
+	match, err := pipeline.MatchRecording(database, samples)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -46,7 +47,7 @@ func TestMatchRecording_selfMatch(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	match, err := MatchRecording(database, samples)
+	match, err := pipeline.MatchRecording(database, samples)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -79,7 +80,7 @@ func TestMatchRecording_onlyCorrectSongMatches(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	match, err := MatchRecording(database, samples)
+	match, err := pipeline.MatchRecording(database, samples)
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -1,10 +1,12 @@
-package decode
+package decode_test
 
 import (
 	"encoding/binary"
 	"math"
 	"os"
 	"testing"
+
+	"github.com/Ashking-tech/audio/decode"
 )
 
 func makeWAV(channels, sampleRate, bitsPerSample, numSamples int) []byte {
@@ -48,38 +50,6 @@ func writeTempWAV(t *testing.T, data []byte) string {
 	return f.Name()
 }
 
-func TestParseHeader(t *testing.T) {
-	data := makeWAV(1, 44100, 16, 1000)
-	m, err := ParseHeader(data)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if m.Channels != 1 {
-		t.Errorf("Channels = %d, want 1", m.Channels)
-	}
-	if m.SampleRate != 44100 {
-		t.Errorf("SampleRate = %d, want 44100", m.SampleRate)
-	}
-	if m.BitsPerSample != 16 {
-		t.Errorf("BitsPerSample = %d, want 16", m.BitsPerSample)
-	}
-	if m.DataOffset != 44 {
-		t.Errorf("DataOffset = %d, want 44", m.DataOffset)
-	}
-}
-
-func TestParseHeader_extraChunks(t *testing.T) {
-	b := buildWAVWithExtraChunks()
-	m, err := ParseHeader(b)
-	if err != nil {
-		t.Fatal(err)
-	}
-	// fmt at 12 -> pos 36, fact at 36 (12 bytes) -> pos 48, data at 48 -> offset 56
-	if m.DataOffset != 56 {
-		t.Errorf("DataOffset = %d, want 56", m.DataOffset)
-	}
-}
-
 func buildWAVWithExtraChunks() []byte {
 	b := make([]byte, 0, 300)
 	write := func(data ...byte) { b = append(b, data...) }
@@ -110,8 +80,39 @@ func buildWAVWithExtraChunks() []byte {
 	return b
 }
 
+func TestParseHeader(t *testing.T) {
+	data := makeWAV(1, 44100, 16, 1000)
+	m, err := decode.ParseHeader(data)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if m.Channels != 1 {
+		t.Errorf("Channels = %d, want 1", m.Channels)
+	}
+	if m.SampleRate != 44100 {
+		t.Errorf("SampleRate = %d, want 44100", m.SampleRate)
+	}
+	if m.BitsPerSample != 16 {
+		t.Errorf("BitsPerSample = %d, want 16", m.BitsPerSample)
+	}
+	if m.DataOffset != 44 {
+		t.Errorf("DataOffset = %d, want 44", m.DataOffset)
+	}
+}
+
+func TestParseHeader_extraChunks(t *testing.T) {
+	b := buildWAVWithExtraChunks()
+	m, err := decode.ParseHeader(b)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if m.DataOffset != 56 {
+		t.Errorf("DataOffset = %d, want 56", m.DataOffset)
+	}
+}
+
 func TestParseHeader_invalid(t *testing.T) {
-	_, err := ParseHeader([]byte("short"))
+	_, err := decode.ParseHeader([]byte("short"))
 	if err == nil {
 		t.Fatal("expected error for short input")
 	}
@@ -121,7 +122,7 @@ func TestParseHeader_notRIFF(t *testing.T) {
 	buf := make([]byte, 44)
 	copy(buf[0:4], "NOT ")
 	copy(buf[8:12], "WAVE")
-	_, err := ParseHeader(buf)
+	_, err := decode.ParseHeader(buf)
 	if err == nil {
 		t.Fatal("expected error for non-RIFF")
 	}
@@ -129,8 +130,8 @@ func TestParseHeader_notRIFF(t *testing.T) {
 
 func TestReadPCMSamples(t *testing.T) {
 	data := makeWAV(1, 44100, 16, 100)
-	m, _ := ParseHeader(data)
-	samples, err := ReadPCMSamples(data, m)
+	m, _ := decode.ParseHeader(data)
+	samples, err := decode.ReadPCMSamples(data, m)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -140,8 +141,8 @@ func TestReadPCMSamples(t *testing.T) {
 }
 
 func TestReadPCMSamples_unsupportedBits(t *testing.T) {
-	m := Metadata{BitsPerSample: 24}
-	_, err := ReadPCMSamples(nil, m)
+	m := decode.Metadata{BitsPerSample: 24}
+	_, err := decode.ReadPCMSamples(nil, m)
 	if err == nil {
 		t.Fatal("expected error for 24-bit")
 	}
@@ -149,7 +150,7 @@ func TestReadPCMSamples_unsupportedBits(t *testing.T) {
 
 func TestStereoToMono(t *testing.T) {
 	samples := []int16{100, 200, 300, 400}
-	mono := StereoToMono(samples, 2)
+	mono := decode.StereoToMono(samples, 2)
 	if len(mono) != 2 {
 		t.Fatalf("got %d samples, want 2", len(mono))
 	}
@@ -163,7 +164,7 @@ func TestStereoToMono(t *testing.T) {
 
 func TestStereoToMono_alreadyMono(t *testing.T) {
 	samples := []int16{100, 200, 300}
-	mono := StereoToMono(samples, 1)
+	mono := decode.StereoToMono(samples, 1)
 	if len(mono) != 3 {
 		t.Fatalf("got %d samples, want 3", len(mono))
 	}
@@ -174,7 +175,7 @@ func TestStereoToMono_alreadyMono(t *testing.T) {
 
 func TestNormalize(t *testing.T) {
 	samples := []int16{0, 16384, 32767, -32768}
-	norm := Normalize(samples)
+	norm := decode.Normalize(samples)
 	if len(norm) != 4 {
 		t.Fatalf("got %d samples, want 4", len(norm))
 	}
@@ -195,7 +196,7 @@ func TestNormalize(t *testing.T) {
 func TestDecodeWav(t *testing.T) {
 	data := makeWAV(2, 48000, 16, 30000)
 	path := writeTempWAV(t, data)
-	samples, err := DecodeWav(path)
+	samples, err := decode.DecodeWav(path)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -210,7 +211,7 @@ func TestDecodeWav(t *testing.T) {
 }
 
 func TestDecodeWav_invalidFile(t *testing.T) {
-	_, err := DecodeWav("/nonexistent/file.wav")
+	_, err := decode.DecodeWav("/nonexistent/file.wav")
 	if err == nil {
 		t.Fatal("expected error for nonexistent file")
 	}
@@ -219,7 +220,7 @@ func TestDecodeWav_invalidFile(t *testing.T) {
 func TestReadAudioFile(t *testing.T) {
 	data := []byte{1, 2, 3}
 	f := writeTempWAV(t, data)
-	read, err := ReadAudioFile(f)
+	read, err := decode.ReadAudioFile(f)
 	if err != nil {
 		t.Fatal(err)
 	}

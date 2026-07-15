@@ -1,31 +1,32 @@
-package db
+package db_test
 
 import (
 	"database/sql"
 	"testing"
 
+	"github.com/Ashking-tech/audio/db"
 	"github.com/Ashking-tech/audio/fingerprint"
 )
 
 func setupDB(t *testing.T) *sql.DB {
 	t.Helper()
-	db, err := InitializeDB(":memory:")
+	database, err := db.InitializeDB(":memory:")
 	if err != nil {
 		t.Fatal(err)
 	}
-	t.Cleanup(func() { db.Close() })
-	return db
+	t.Cleanup(func() { database.Close() })
+	return database
 }
 
 func TestInitializeDB(t *testing.T) {
-	db, err := InitializeDB(":memory:")
+	database, err := db.InitializeDB(":memory:")
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer db.Close()
+	defer database.Close()
 
 	var tableCount int
-	err = db.QueryRow(`
+	err = database.QueryRow(`
 		SELECT COUNT(*) FROM sqlite_master
 		WHERE type='table' AND name IN ('songs', 'fingerprints')
 	`).Scan(&tableCount)
@@ -38,14 +39,14 @@ func TestInitializeDB(t *testing.T) {
 }
 
 func TestInsertsong(t *testing.T) {
-	db := setupDB(t)
+	database := setupDB(t)
 
 	fps := []fingerprint.Fingerprint{
 		{Hash: 123, AnchorTime: 10},
 		{Hash: 456, AnchorTime: 20},
 	}
 
-	id, err := Insertsong(db, "test_song", fps)
+	id, err := db.Insertsong(database, "test_song", fps)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -54,7 +55,7 @@ func TestInsertsong(t *testing.T) {
 	}
 
 	var name string
-	err = db.QueryRow("SELECT name FROM songs WHERE id = ?", id).Scan(&name)
+	err = database.QueryRow("SELECT name FROM songs WHERE id = ?", id).Scan(&name)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -63,7 +64,7 @@ func TestInsertsong(t *testing.T) {
 	}
 
 	var count int
-	err = db.QueryRow("SELECT COUNT(*) FROM fingerprints WHERE song_id = ?", id).Scan(&count)
+	err = database.QueryRow("SELECT COUNT(*) FROM fingerprints WHERE song_id = ?", id).Scan(&count)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -73,23 +74,23 @@ func TestInsertsong(t *testing.T) {
 }
 
 func TestInsertsong_duplicateName(t *testing.T) {
-	db := setupDB(t)
+	database := setupDB(t)
 
 	fps := []fingerprint.Fingerprint{{Hash: 1, AnchorTime: 0}}
-	_, err := Insertsong(db, "dupe", fps)
+	_, err := db.Insertsong(database, "dupe", fps)
 	if err != nil {
 		t.Fatal(err)
 	}
-	_, err = Insertsong(db, "dupe", fps)
+	_, err = db.Insertsong(database, "dupe", fps)
 	if err == nil {
 		t.Fatal("expected error for duplicate song name")
 	}
 }
 
 func TestInsertFingerprints(t *testing.T) {
-	db := setupDB(t)
+	database := setupDB(t)
 
-	result, err := db.Exec("INSERT INTO songs (name) VALUES (?)", "test")
+	result, err := database.Exec("INSERT INTO songs (name) VALUES (?)", "test")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -101,13 +102,13 @@ func TestInsertFingerprints(t *testing.T) {
 		{Hash: 300, AnchorTime: 25},
 	}
 
-	err = InsertFingerprints(db, songID, fps)
+	err = db.InsertFingerprints(database, songID, fps)
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	var count int
-	err = db.QueryRow("SELECT COUNT(*) FROM fingerprints WHERE song_id = ?", songID).Scan(&count)
+	err = database.QueryRow("SELECT COUNT(*) FROM fingerprints WHERE song_id = ?", songID).Scan(&count)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -117,14 +118,14 @@ func TestInsertFingerprints(t *testing.T) {
 }
 
 func TestLookUpMatches_exact(t *testing.T) {
-	db := setupDB(t)
+	database := setupDB(t)
 
 	fps := []fingerprint.Fingerprint{
 		{Hash: 42, AnchorTime: 100},
 		{Hash: 99, AnchorTime: 200},
 	}
 
-	_, err := Insertsong(db, "song_a", fps)
+	_, err := db.Insertsong(database, "song_a", fps)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -134,7 +135,7 @@ func TestLookUpMatches_exact(t *testing.T) {
 		{Hash: 99, AnchorTime: 200},
 	}
 
-	match, err := LookUpMatches(db, queryFps)
+	match, err := db.LookUpMatches(database, queryFps)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -144,13 +145,13 @@ func TestLookUpMatches_exact(t *testing.T) {
 }
 
 func TestLookUpMatches_noMatch(t *testing.T) {
-	db := setupDB(t)
+	database := setupDB(t)
 
 	fps := []fingerprint.Fingerprint{
 		{Hash: 42, AnchorTime: 100},
 	}
 
-	_, err := Insertsong(db, "song_a", fps)
+	_, err := db.Insertsong(database, "song_a", fps)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -159,7 +160,7 @@ func TestLookUpMatches_noMatch(t *testing.T) {
 		{Hash: 9999, AnchorTime: 0},
 	}
 
-	match, err := LookUpMatches(db, queryFps)
+	match, err := db.LookUpMatches(database, queryFps)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -169,7 +170,7 @@ func TestLookUpMatches_noMatch(t *testing.T) {
 }
 
 func TestLookUpMatches_offsetAlignment(t *testing.T) {
-	db := setupDB(t)
+	database := setupDB(t)
 
 	fps := []fingerprint.Fingerprint{
 		{Hash: 10, AnchorTime: 50},
@@ -177,7 +178,7 @@ func TestLookUpMatches_offsetAlignment(t *testing.T) {
 		{Hash: 30, AnchorTime: 150},
 	}
 
-	_, err := Insertsong(db, "song_x", fps)
+	_, err := db.Insertsong(database, "song_x", fps)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -188,7 +189,7 @@ func TestLookUpMatches_offsetAlignment(t *testing.T) {
 		{Hash: 30, AnchorTime: 200},
 	}
 
-	match, err := LookUpMatches(db, queryFps)
+	match, err := db.LookUpMatches(database, queryFps)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -198,9 +199,9 @@ func TestLookUpMatches_offsetAlignment(t *testing.T) {
 }
 
 func TestLookUpMatches_bestMatch(t *testing.T) {
-	db := setupDB(t)
+	database := setupDB(t)
 
-	_, err := Insertsong(db, "song_a", []fingerprint.Fingerprint{
+	_, err := db.Insertsong(database, "song_a", []fingerprint.Fingerprint{
 		{Hash: 1, AnchorTime: 10},
 		{Hash: 2, AnchorTime: 20},
 	})
@@ -208,7 +209,7 @@ func TestLookUpMatches_bestMatch(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	_, err = Insertsong(db, "song_b", []fingerprint.Fingerprint{
+	_, err = db.Insertsong(database, "song_b", []fingerprint.Fingerprint{
 		{Hash: 1, AnchorTime: 100},
 		{Hash: 2, AnchorTime: 200},
 		{Hash: 3, AnchorTime: 300},
@@ -223,7 +224,7 @@ func TestLookUpMatches_bestMatch(t *testing.T) {
 		{Hash: 3, AnchorTime: 30},
 	}
 
-	match, err := LookUpMatches(db, queryFps)
+	match, err := db.LookUpMatches(database, queryFps)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -233,9 +234,9 @@ func TestLookUpMatches_bestMatch(t *testing.T) {
 }
 
 func TestListSongs(t *testing.T) {
-	db := setupDB(t)
+	database := setupDB(t)
 
-	songs, err := ListSongs(db)
+	songs, err := db.ListSongs(database)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -244,7 +245,7 @@ func TestListSongs(t *testing.T) {
 	}
 
 	for _, name := range []string{"c", "a", "b"} {
-		_, err := Insertsong(db, name, []fingerprint.Fingerprint{
+		_, err := db.Insertsong(database, name, []fingerprint.Fingerprint{
 			{Hash: uint32(len(name)), AnchorTime: 0},
 		})
 		if err != nil {
@@ -252,7 +253,7 @@ func TestListSongs(t *testing.T) {
 		}
 	}
 
-	songs, err = ListSongs(db)
+	songs, err = db.ListSongs(database)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -271,9 +272,9 @@ func TestListSongs(t *testing.T) {
 }
 
 func TestLookUpMatches_emptyInput(t *testing.T) {
-	db := setupDB(t)
+	database := setupDB(t)
 
-	match, err := LookUpMatches(db, []fingerprint.Fingerprint{})
+	match, err := db.LookUpMatches(database, []fingerprint.Fingerprint{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -283,9 +284,9 @@ func TestLookUpMatches_emptyInput(t *testing.T) {
 }
 
 func TestLookUpMatches_wrongOffset(t *testing.T) {
-	db := setupDB(t)
+	database := setupDB(t)
 
-	_, err := Insertsong(db, "song", []fingerprint.Fingerprint{
+	_, err := db.Insertsong(database, "song", []fingerprint.Fingerprint{
 		{Hash: 1, AnchorTime: 10},
 		{Hash: 2, AnchorTime: 20},
 	})
@@ -298,7 +299,7 @@ func TestLookUpMatches_wrongOffset(t *testing.T) {
 		{Hash: 2, AnchorTime: 888},
 	}
 
-	match, err := LookUpMatches(db, queryFps)
+	match, err := db.LookUpMatches(database, queryFps)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -308,11 +309,11 @@ func TestLookUpMatches_wrongOffset(t *testing.T) {
 }
 
 func BenchmarkInsertsong(b *testing.B) {
-	db, err := InitializeDB(":memory:")
+	database, err := db.InitializeDB(":memory:")
 	if err != nil {
 		b.Fatal(err)
 	}
-	defer db.Close()
+	defer database.Close()
 
 	fps := make([]fingerprint.Fingerprint, 1000)
 	for i := range fps {
@@ -324,7 +325,7 @@ func BenchmarkInsertsong(b *testing.B) {
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		_, err := Insertsong(db, "bench", fps)
+		_, err := db.Insertsong(database, "bench", fps)
 		if err != nil {
 			b.Fatal(err)
 		}
@@ -332,11 +333,11 @@ func BenchmarkInsertsong(b *testing.B) {
 }
 
 func BenchmarkLookUpMatches(b *testing.B) {
-	db, err := InitializeDB(":memory:")
+	database, err := db.InitializeDB(":memory:")
 	if err != nil {
 		b.Fatal(err)
 	}
-	defer db.Close()
+	defer database.Close()
 
 	fps := make([]fingerprint.Fingerprint, 1000)
 	for i := range fps {
@@ -345,7 +346,7 @@ func BenchmarkLookUpMatches(b *testing.B) {
 			AnchorTime: i * 10,
 		}
 	}
-	_, err = Insertsong(db, "bench", fps)
+	_, err = db.Insertsong(database, "bench", fps)
 	if err != nil {
 		b.Fatal(err)
 	}
@@ -354,7 +355,7 @@ func BenchmarkLookUpMatches(b *testing.B) {
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		_, err := LookUpMatches(db, queryFps)
+		_, err := db.LookUpMatches(database, queryFps)
 		if err != nil {
 			b.Fatal(err)
 		}

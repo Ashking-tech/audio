@@ -1,13 +1,15 @@
-package fingerprint
+package fingerprint_test
 
 import (
 	"math"
 	"os"
 	"testing"
+
+	"github.com/Ashking-tech/audio/fingerprint"
 )
 
 func TestGenerateSineWave(t *testing.T) {
-	samples := GenerateSineWave(440, 1.0, 44100)
+	samples := fingerprint.GenerateSineWave(440, 1.0, 44100)
 	expected := 44100
 	if len(samples) != expected {
 		t.Fatalf("got %d samples, want %d", len(samples), expected)
@@ -19,14 +21,13 @@ func TestGenerateSineWave(t *testing.T) {
 			peaks++
 		}
 	}
-	// A 440 Hz sine wave for 1s should have ~440 peaks
 	if peaks < 400 || peaks > 480 {
 		t.Logf("peak count = %d (expected ~440)", peaks)
 	}
 }
 
 func TestGenerateSineWave_values(t *testing.T) {
-	samples := GenerateSineWave(1.0, 1.0, 100)
+	samples := fingerprint.GenerateSineWave(1.0, 1.0, 100)
 	for _, s := range samples {
 		if s < -1.0 || s > 1.0 {
 			t.Fatalf("sample %f out of range", s)
@@ -35,8 +36,8 @@ func TestGenerateSineWave_values(t *testing.T) {
 }
 
 func TestAnalyzeFrequency(t *testing.T) {
-	samples := GenerateSineWave(440, 0.2, 44100)
-	freq := AnalyzeFrequency(samples, 44100)
+	samples := fingerprint.GenerateSineWave(440, 0.2, 44100)
+	freq := fingerprint.AnalyzeFrequency(samples, 44100)
 	if freq < 430 || freq > 450 {
 		t.Errorf("detected frequency = %f, want ~440", freq)
 	}
@@ -44,15 +45,15 @@ func TestAnalyzeFrequency(t *testing.T) {
 
 func TestAnalyzeFrequency_shortInput(t *testing.T) {
 	samples := make([]float64, 100)
-	freq := AnalyzeFrequency(samples, 44100)
+	freq := fingerprint.AnalyzeFrequency(samples, 44100)
 	if freq != 0 {
 		t.Errorf("expected 0 for short input, got %f", freq)
 	}
 }
 
 func TestSpectogram_GenerateSpectogram(t *testing.T) {
-	samples := GenerateSineWave(440, 0.5, 44100)
-	s := Spectogram{WindowSize: 4096, HopSize: 512}
+	samples := fingerprint.GenerateSineWave(440, 0.5, 44100)
+	s := fingerprint.Spectogram{WindowSize: 4096, HopSize: 512}
 	spec := s.GenerateSpectogram(samples)
 
 	if len(spec) == 0 {
@@ -81,7 +82,7 @@ func TestSpectogram_GenerateSpectogram(t *testing.T) {
 
 func TestSpectogram_GenerateSpectogram_silence(t *testing.T) {
 	samples := make([]float64, 44100)
-	s := Spectogram{WindowSize: 4096, HopSize: 512}
+	s := fingerprint.Spectogram{WindowSize: 4096, HopSize: 512}
 	spec := s.GenerateSpectogram(samples)
 	if len(spec) == 0 {
 		t.Fatal("spectrogram is empty")
@@ -102,7 +103,7 @@ func TestSpectogramImage(t *testing.T) {
 		{0.1, 0.3, 0.1},
 	}
 	path := t.TempDir() + "/test_spec.png"
-	err := SpectogramImage(spec, path)
+	err := fingerprint.SpectogramImage(spec, path)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -113,7 +114,7 @@ func TestSpectogramImage(t *testing.T) {
 }
 
 func TestSpectogramImage_empty(t *testing.T) {
-	err := SpectogramImage([][]float64{}, "test.png")
+	err := fingerprint.SpectogramImage([][]float64{}, "test.png")
 	if err == nil {
 		t.Fatal("expected error for empty spectrogram")
 	}

@@ -1,7 +1,9 @@
-package fingerprint
+package fingerprint_test
 
 import (
 	"testing"
+
+	"github.com/Ashking-tech/audio/fingerprint"
 )
 
 func TestFindPeaks_simple(t *testing.T) {
@@ -10,7 +12,7 @@ func TestFindPeaks_simple(t *testing.T) {
 		{0.1, 0.9, 0.3},
 		{0.1, 0.2, 0.1},
 	}
-	peaks := FindPeaks(spec, 1, 0.3)
+	peaks := fingerprint.FindPeaks(spec, 1, 0.3)
 	if len(peaks) == 0 {
 		t.Fatal("expected at least 1 peak")
 	}
@@ -33,14 +35,14 @@ func TestFindPeaks_minMagnitude(t *testing.T) {
 		{0.5, 0.3},
 		{0.3, 0.2},
 	}
-	peaks := FindPeaks(spec, 1, 0.6)
+	peaks := fingerprint.FindPeaks(spec, 1, 0.6)
 	if len(peaks) != 0 {
 		t.Errorf("expected 0 peaks with high threshold, got %d", len(peaks))
 	}
 }
 
 func TestFindPeaks_empty(t *testing.T) {
-	peaks := FindPeaks([][]float64{}, 5, 0.1)
+	peaks := fingerprint.FindPeaks([][]float64{}, 5, 0.1)
 	if peaks != nil {
 		t.Error("expected nil for empty spectrogram")
 	}
@@ -51,7 +53,7 @@ func TestFindPeaks_noDominant(t *testing.T) {
 		{0.5, 0.5},
 		{0.5, 0.5},
 	}
-	peaks := FindPeaks(spec, 1, 0.1)
+	peaks := fingerprint.FindPeaks(spec, 1, 0.1)
 	if len(peaks) != 0 {
 		t.Errorf("expected 0 peaks for uniform grid, got %d", len(peaks))
 	}
@@ -62,7 +64,7 @@ func TestFindPeaks_edge(t *testing.T) {
 		{0.8, 0.2},
 		{0.2, 0.1},
 	}
-	peaks := FindPeaks(spec, 1, 0.3)
+	peaks := fingerprint.FindPeaks(spec, 1, 0.3)
 	if len(peaks) != 1 {
 		t.Fatalf("expected 1 peak, got %d", len(peaks))
 	}
@@ -77,7 +79,7 @@ func TestFindPeaks_multiple(t *testing.T) {
 		{0.1, 0.2, 0.1},
 		{0.7, 0.1, 0.6},
 	}
-	peaks := FindPeaks(spec, 1, 0.3)
+	peaks := fingerprint.FindPeaks(spec, 1, 0.3)
 	if len(peaks) < 3 {
 		t.Errorf("expected >=3 peaks, got %d", len(peaks))
 	}
@@ -96,6 +98,6 @@ func BenchmarkFindPeaks(b *testing.B) {
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		FindPeaks(spec, 10, 0.1)
+		fingerprint.FindPeaks(spec, 10, 0.1)
 	}
 }

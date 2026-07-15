@@ -1,13 +1,15 @@
-package fingerprint
+package fingerprint_test
 
 import (
 	"testing"
+
+	"github.com/Ashking-tech/audio/fingerprint"
 )
 
-func makePeaks(times, freqs []int, mags []float64) []Peak {
-	peaks := make([]Peak, len(times))
+func makePeaks(times, freqs []int, mags []float64) []fingerprint.Peak {
+	peaks := make([]fingerprint.Peak, len(times))
 	for i := range peaks {
-		peaks[i] = Peak{
+		peaks[i] = fingerprint.Peak{
 			TimeBin:   times[i],
 			FreqBin:   freqs[i],
 			Magnitude: mags[i],
@@ -22,7 +24,7 @@ func TestFingerprintPeaks_basic(t *testing.T) {
 		[]int{5, 10, 15, 20, 25, 30},
 		[]float64{0.9, 0.8, 0.7, 0.6, 0.5, 0.4},
 	)
-	fps := FingerprintPeaks(peaks, 3)
+	fps := fingerprint.FingerprintPeaks(peaks, 3)
 	if len(fps) == 0 {
 		t.Fatal("expected at least 1 fingerprint")
 	}
@@ -36,12 +38,8 @@ func TestFingerprintPeaks_fanOut(t *testing.T) {
 	)
 
 	fanOut := 4
-	fps := FingerprintPeaks(peaks, fanOut)
+	fps := fingerprint.FingerprintPeaks(peaks, fanOut)
 
-	// Anchor 0 pairs with 1,2,3,4 = 4 pairs
-	// Anchor 1 pairs with 2,3,4,5 = 4 pairs
-	// ...
-	// Anchor 9 pairs with none (no next peaks)
 	expectedPairs := 0
 	for i := 0; i < len(peaks); i++ {
 		pairs := fanOut
@@ -63,8 +61,8 @@ func TestFingerprintPeaks_deterministic(t *testing.T) {
 		[]float64{0.9, 0.8, 0.7, 0.6},
 	)
 
-	fps1 := FingerprintPeaks(peaks, 2)
-	fps2 := FingerprintPeaks(peaks, 2)
+	fps1 := fingerprint.FingerprintPeaks(peaks, 2)
+	fps2 := fingerprint.FingerprintPeaks(peaks, 2)
 
 	if len(fps1) != len(fps2) {
 		t.Fatalf("length mismatch: %d vs %d", len(fps1), len(fps2))
@@ -85,7 +83,7 @@ func TestFingerprintPeaks_hashFormat(t *testing.T) {
 		[]int{5, 12},
 		[]float64{0.9, 0.8},
 	)
-	fps := FingerprintPeaks(peaks, 1)
+	fps := fingerprint.FingerprintPeaks(peaks, 1)
 	if len(fps) != 1 {
 		t.Fatalf("expected 1 fingerprint, got %d", len(fps))
 	}
@@ -95,7 +93,6 @@ func TestFingerprintPeaks_hashFormat(t *testing.T) {
 		t.Errorf("AnchorTime = %d, want 0", fp.AnchorTime)
 	}
 
-	// f1 = 5, f2 = 12, dt = 10
 	expectedHash := (uint32(5) << 21) | (uint32(12) << 10) | uint32(10)
 	if fp.Hash != expectedHash {
 		t.Errorf("Hash = %d, want %d", fp.Hash, expectedHash)
@@ -103,7 +100,7 @@ func TestFingerprintPeaks_hashFormat(t *testing.T) {
 }
 
 func TestFingerprintPeaks_empty(t *testing.T) {
-	fps := FingerprintPeaks([]Peak{}, 5)
+	fps := fingerprint.FingerprintPeaks([]fingerprint.Peak{}, 5)
 	if len(fps) != 0 {
 		t.Errorf("expected 0 fingerprints for empty input, got %d", len(fps))
 	}
@@ -115,7 +112,7 @@ func TestFingerprintPeaks_single(t *testing.T) {
 		[]int{5},
 		[]float64{0.9},
 	)
-	fps := FingerprintPeaks(peaks, 5)
+	fps := fingerprint.FingerprintPeaks(peaks, 5)
 	if len(fps) != 0 {
 		t.Errorf("expected 0 fingerprints for single peak, got %d", len(fps))
 	}
@@ -127,16 +124,16 @@ func TestFingerprintPeaks_zeroFanOut(t *testing.T) {
 		[]int{5, 10, 15},
 		[]float64{0.9, 0.8, 0.7},
 	)
-	fps := FingerprintPeaks(peaks, 0)
+	fps := fingerprint.FingerprintPeaks(peaks, 0)
 	if len(fps) != 0 {
 		t.Errorf("expected 0 fingerprints with fanOut=0, got %d", len(fps))
 	}
 }
 
 func BenchmarkFingerprintPeaks(b *testing.B) {
-	peaks := make([]Peak, 2000)
+	peaks := make([]fingerprint.Peak, 2000)
 	for i := range peaks {
-		peaks[i] = Peak{
+		peaks[i] = fingerprint.Peak{
 			TimeBin:   i * 5,
 			FreqBin:   i % 100,
 			Magnitude: float64(i) / 2000,
@@ -145,6 +142,6 @@ func BenchmarkFingerprintPeaks(b *testing.B) {
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		FingerprintPeaks(peaks, 10)
+		fingerprint.FingerprintPeaks(peaks, 10)
 	}
 }

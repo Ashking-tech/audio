@@ -1,12 +1,29 @@
 # ♪ Audio Fingerprint
 
-> Shazam-style music identification engine built in Go.
+<p>
+  <img src="https://img.shields.io/badge/go-1.26-%2300ADD8">
+  <img src="https://img.shields.io/badge/license-MIT-%23a8a29e">
+  <img src="https://img.shields.io/badge/status-active-%236b8f5e">
+</p>
 
-Recognise songs from short microphone recordings or audio files using spectrogram constellation fingerprinting and offset-aligned hash matching.
+Shazam-style music identification engine built in Go. Recognise songs from short microphone recordings or audio files using spectrogram constellation fingerprinting and offset-aligned hash matching.
 
 ---
 
-## Algorithm overview
+## Features
+
+- **Spectrogram fingerprinting** — sliding FFT with Hann window (4096 samples, 512 hop) generates a time-frequency energy grid
+- **Constellation extraction** — local maxima peak finding with configurable neighbourhood and magnitude threshold
+- **Combinatorial hashing** — pair peaks within a target zone, pack `(freq1, freq2, Δt)` into a compact `uint32` hash
+- **Offset-aligned matching** — group by song and time offset; the densest offset cluster identifies the match
+- **SQLite storage** — indexed hash lookups with transactional batch inserts
+- **Browser recording** — capture audio via the Web Audio API, encode to WAV, and match server-side
+- **PortAudio capture** — CLI microphone recording on desktop
+- **CLI + Web UI** — full-featured command-line interface and a clean browser-based SPA
+
+---
+
+## Architecture
 
 ```mermaid
 flowchart TB
@@ -115,7 +132,110 @@ PortAudio captures raw float64 samples from the default microphone at 44.1 kHz. 
 
 ---
 
+## Screenshots
+
+### Web UI
+
+![Web UI](image.png)
+
+### Spectrogram
+
+![Spectrogram](spectrogram.png)
+
+### Constellation Map
+
+*Coming soon — visualisation of extracted peaks overlaid on the spectrogram.*
+
+---
+
+## Quick start
+
+```bash
+# Build
+go build -o audio-fp .
+
+# Add a song
+./audio-fp add-song song.wav "Song Name"
+
+# Match a file
+./audio-fp match unknown.wav
+
+# Record from mic and match
+./audio-fp listen 5
+
+# Start web UI
+./audio-fp serve
+```
+
+Batch-add an entire folder:
+
+```bash
+for f in /path/to/songs/*.wav; do
+  name="$(basename "$f" .wav)"
+  ./audio-fp add-song "$f" "$name"
+done
+```
+
+---
+
+## CLI usage
+
+```
+Commands:
+  add-song <file.wav> <name>   Fingerprint a WAV file and store it
+  match    <file.wav>           Match a WAV file against the database
+  listen   [duration]           Record N seconds from mic and match
+  list                          List all fingerprinted songs
+  serve                         Start the web UI on :8082
+```
+
+---
+
+## Web UI
+
+```bash
+./audio-fp serve
+```
+
+Open `http://localhost:8082`. Three tabs:
+
+| Tab | Description |
+|-----|-------------|
+| **Identify** | Records 5s from the browser mic, builds a WAV in memory, sends it to `/api/match`, shows the result |
+| **Add Song** | Upload a `.wav` with a name — fingerprints and stores it |
+| **Library** | Lists every fingerprinted song in the database |
+
+---
+
+## REST API
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/api/add-song` | Multipart form: `file` (WAV) + `name` (string) |
+| POST | `/api/match` | Multipart form: `file` (WAV) |
+| GET | `/api/songs` | Returns JSON array of all song names |
+
+**Response formats:**
+
+```json
+// POST /api/add-song
+{ "status": "ok", "song": "Song Name" }
+
+// POST /api/match
+{ "status": "matched", "match": "Song Name" }
+// or
+{ "status": "no match" }
+
+// GET /api/songs
+{ "songs": ["Song A", "Song B"] }
+```
+
+---
+
 ## Project structure
+
+<details>
+<summary>Click to expand</summary>
 
 ```
 audio/
@@ -143,54 +263,7 @@ audio/
 └── README.md
 ```
 
----
-
-## CLI usage
-
-```
-Build:   go build -o audio-fp .
-Run:     ./audio-fp <command> [args]
-
-Commands:
-  add-song <file.wav> <name>   Fingerprint a WAV file and store it
-  match    <file.wav>           Match a WAV file against the database
-  listen   [duration]           Record N seconds from mic and match
-  list                          List all fingerprinted songs
-  serve                         Start the web UI on :8082
-```
-
-Batch-add an entire folder:
-
-```bash
-for f in /path/to/songs/*.wav; do
-  name="$(basename "$f" .wav)"
-  ./audio-fp add-song "$f" "$name"
-done
-```
-
----
-
-## Web UI
-
-```bash
-./audio-fp serve
-```
-
-Open `http://localhost:8082`. Three tabs:
-
-| Tab | What it does |
-|-----|-------------|
-| **Identify** | Records 5s from the browser mic, builds a WAV in memory, sends it to `/api/match`, shows the result |
-| **Add Song** | Upload a `.wav` with a name → calls `/api/add-song` → runs IngestPipeline |
-| **Library** | Fetches `/api/songs` and displays every fingerprinted song |
-
-### API endpoints
-
-| Method | Path | Description |
-|--------|------|-------------|
-| POST | `/api/add-song` | Multipart form: `file` (WAV) + `name` (string) → fingerprints + stores |
-| POST | `/api/match` | Multipart form: `file` (WAV) → returns `{"status":"matched","song":"..."}` or `"no match"` |
-| GET | `/api/songs` | Returns `{"songs":["name1","name2",...]}` |
+</details>
 
 ---
 
@@ -218,12 +291,39 @@ System dependency: `portaudio19-dev` (Debian/Ubuntu) or `portaudio-devel` (Fedor
 
 ---
 
-## Inspect the database
+## Database
+
+`fingerprints.db` is created automatically in the working directory.
 
 ```bash
+# Count songs
 sqlite3 fingerprints.db "SELECT COUNT(*) FROM songs"
+
+# Count fingerprints
 sqlite3 fingerprints.db "SELECT COUNT(*) FROM fingerprints"
-sqlite3 fingerprints.db "SELECT name, COUNT(*) AS fingerprints
+
+# Fingerprints per song
+sqlite3 fingerprints.db "
+  SELECT name, COUNT(*) AS fingerprints
   FROM songs JOIN fingerprints ON songs.id = fingerprints.song_id
-  GROUP BY songs.id ORDER BY fingerprints DESC"
+  GROUP BY songs.id ORDER BY fingerprints DESC
+"
 ```
+
+---
+
+## Future improvements
+
+- [ ] **Offset alignment scoring** — stricter cluster analysis with confidence thresholds
+- [ ] **Noise filtering** — adaptive magnitude thresholds for cleaner peak extraction
+- [ ] **Peak density tuning** — dynamic fan-out based on local peak density
+- [ ] **Database export/import** — share fingerprint databases between instances
+- [ ] **Continuous listening mode** — real-time matching loop from microphone
+- [ ] **Multiple format support** — MP3, FLAC, OGG via `golamext` or ffmpeg piping
+- [ ] **Docker image** — deploy as a containerised service
+
+---
+
+## License
+
+MIT

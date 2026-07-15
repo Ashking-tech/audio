@@ -3,8 +3,9 @@ module github.com/Ashking-tech/audio
 go 1.26.3
 
 require (
-	golang.org/x/text v0.23.0
+	github.com/gordonklaus/portaudio v0.0.0-20260203164431-765aa7dfa631
 	gonum.org/v1/gonum v0.17.0
+	modernc.org/sqlite v1.53.0
 )
 
 require (
@@ -17,5 +18,4 @@ require (
 	modernc.org/libc v1.73.4 // indirect
 	modernc.org/mathutil v1.7.1 // indirect
 	modernc.org/memory v1.11.0 // indirect
-	modernc.org/sqlite v1.53.0 // indirect
 )

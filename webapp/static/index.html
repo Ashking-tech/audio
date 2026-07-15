@@ -1,0 +1,590 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Audio Fingerprint</title>
+<style>
+:root {
+  --bg: #f8f9fa;
+  --surface: #ffffff;
+  --border: #e5e7eb;
+  --text: #1f2937;
+  --text-secondary: #6b7280;
+  --text-tertiary: #9ca3af;
+  --accent: #4f46e5;
+  --accent-hover: #4338ca;
+  --success: #059669;
+  --error: #dc2626;
+  --radius: 8px;
+  --shadow: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', Roboto, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  -webkit-font-smoothing: antialiased;
+}
+
+.container {
+  max-width: 560px;
+  width: 100%;
+  padding: 48px 24px;
+}
+
+header {
+  margin-bottom: 32px;
+}
+
+h1 {
+  font-size: 1.5rem;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  margin-bottom: 4px;
+}
+
+.subtitle {
+  color: var(--text-secondary);
+  font-size: 0.875rem;
+}
+
+.tabs {
+  display: flex;
+  gap: 2px;
+  background: var(--border);
+  border-radius: var(--radius);
+  padding: 2px;
+  margin-bottom: 32px;
+}
+
+.tab {
+  flex: 1;
+  padding: 8px 12px;
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  cursor: pointer;
+  border-radius: 6px;
+  transition: all 0.15s;
+}
+
+.tab.active {
+  background: var(--surface);
+  color: var(--text);
+  box-shadow: var(--shadow);
+}
+
+.tab:hover:not(.active) {
+  color: var(--text);
+}
+
+.panel { display: none; }
+.panel.active { display: block; }
+
+/* Identify */
+.identify-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 40px 24px;
+  text-align: center;
+  box-shadow: var(--shadow);
+}
+
+.listen-btn {
+  width: 128px;
+  height: 128px;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s;
+  margin: 0 auto 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.listen-btn:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.listen-btn.recording {
+  border-color: var(--error);
+  color: var(--error);
+  animation: pulse 1s ease-in-out infinite;
+}
+
+.listen-btn .icon {
+  font-size: 1.75rem;
+  line-height: 1;
+  pointer-events: none;
+}
+
+.listen-btn .label {
+  font-size: 0.75rem;
+  font-weight: 500;
+  pointer-events: none;
+}
+
+@keyframes pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(220,38,38,0.15); }
+  50% { box-shadow: 0 0 0 16px rgba(220,38,38,0); }
+}
+
+.status {
+  font-size: 0.8125rem;
+  color: var(--text-secondary);
+  min-height: 20px;
+}
+
+.status .spinner {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border: 2px solid var(--border);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 0.6s linear infinite;
+  margin-right: 6px;
+  vertical-align: middle;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.result-card {
+  display: none;
+  margin-top: 20px;
+  padding-top: 20px;
+  border-top: 1px solid var(--border);
+}
+
+.result-card.show { display: block; }
+
+.result-card .song-name {
+  font-size: 1.125rem;
+  font-weight: 600;
+  margin-bottom: 2px;
+}
+
+.result-card .confidence {
+  font-size: 0.8125rem;
+  color: var(--success);
+}
+
+/* Upload */
+.upload-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 24px;
+  box-shadow: var(--shadow);
+}
+
+.upload-area {
+  border: 1px dashed var(--border);
+  border-radius: var(--radius);
+  padding: 32px 16px;
+  text-align: center;
+  cursor: pointer;
+  transition: border-color 0.15s;
+  margin-bottom: 16px;
+}
+
+.upload-area:hover {
+  border-color: var(--accent);
+}
+
+.upload-area .icon {
+  font-size: 1.5rem;
+  margin-bottom: 8px;
+}
+
+.upload-area p {
+  font-size: 0.8125rem;
+  color: var(--text-secondary);
+}
+
+.upload-area .filename {
+  font-weight: 500;
+  color: var(--text);
+}
+
+.upload-area input[type="file"] { display: none; }
+
+#songName {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg);
+  color: var(--text);
+  font-size: 0.875rem;
+  outline: none;
+  transition: border-color 0.15s;
+}
+
+#songName:focus {
+  border-color: var(--accent);
+}
+
+.submit-btn {
+  width: 100%;
+  padding: 10px 16px;
+  border: none;
+  border-radius: var(--radius);
+  background: var(--accent);
+  color: #fff;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  margin-top: 12px;
+  transition: background 0.15s;
+}
+
+.submit-btn:hover:not(:disabled) {
+  background: var(--accent-hover);
+}
+
+.submit-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+#uploadStatus {
+  margin-top: 12px;
+  font-size: 0.8125rem;
+  color: var(--text-secondary);
+}
+
+/* Library */
+.library-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 24px;
+  box-shadow: var(--shadow);
+}
+
+.library-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.library-header h2 {
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.refresh-btn {
+  padding: 6px 12px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface);
+  color: var(--text-secondary);
+  font-size: 0.75rem;
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s;
+}
+
+.refresh-btn:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.song-list {
+  list-style: none;
+}
+
+.song-list li {
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.875rem;
+}
+
+.song-list li:last-child {
+  border-bottom: none;
+}
+
+.song-list li .num {
+  color: var(--text-tertiary);
+  font-size: 0.75rem;
+  width: 24px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.empty-state {
+  color: var(--text-tertiary);
+  font-size: 0.8125rem;
+  text-align: center;
+  padding: 32px 0;
+}
+
+@media (max-width: 480px) {
+  .container { padding: 24px 16px; }
+  .identify-card { padding: 24px 16px; }
+  .listen-btn { width: 112px; height: 112px; }
+}
+</style>
+</head>
+<body>
+<div class="container">
+  <header>
+    <h1>Audio Fingerprint</h1>
+    <p class="subtitle">Identify songs by sound</p>
+  </header>
+
+  <div class="tabs">
+    <button class="tab active" data-tab="identify">Identify</button>
+    <button class="tab" data-tab="library">Library</button>
+    <button class="tab" data-tab="upload">Add Song</button>
+  </div>
+
+  <!-- Identify -->
+  <div class="panel active" id="panel-identify">
+    <div class="identify-card">
+      <button class="listen-btn" id="listenBtn">
+        <span class="icon">🎵</span>
+        <span class="label">Start Listening</span>
+      </button>
+      <div class="status" id="status">Tap the button to identify a song</div>
+      <div class="result-card" id="resultCard">
+        <div class="song-name" id="songNameResult"></div>
+        <div class="confidence" id="confidenceResult"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Upload -->
+  <div class="panel" id="panel-upload">
+    <div class="upload-card">
+      <div class="upload-area" id="uploadArea">
+        <div class="icon">🎤</div>
+        <p>Choose a WAV file</p>
+        <input type="file" id="fileInput" accept=".wav">
+      </div>
+      <input type="text" id="songName" placeholder="Song name">
+      <button class="submit-btn" id="uploadBtn" disabled>Upload &amp; Fingerprint</button>
+      <div id="uploadStatus"></div>
+    </div>
+  </div>
+
+  <!-- Library -->
+  <div class="panel" id="panel-library">
+    <div class="library-card">
+      <div class="library-header">
+        <h2>Stored Songs</h2>
+        <button class="refresh-btn" id="refreshBtn">Refresh</button>
+      </div>
+      <ul class="song-list" id="songList"></ul>
+      <div class="empty-state" id="emptyState">No songs in library yet</div>
+    </div>
+  </div>
+</div>
+
+<script>
+document.querySelectorAll('.tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+    tab.classList.add('active');
+    document.getElementById('panel-' + tab.dataset.tab).classList.add('active');
+  });
+});
+
+const fileInput = document.getElementById('fileInput');
+const uploadArea = document.getElementById('uploadArea');
+const songName = document.getElementById('songName');
+const uploadBtn = document.getElementById('uploadBtn');
+const uploadStatus = document.getElementById('uploadStatus');
+
+uploadArea.addEventListener('click', () => fileInput.click());
+fileInput.addEventListener('change', () => {
+  uploadBtn.disabled = !fileInput.files.length || !songName.value.trim();
+  if (fileInput.files.length) {
+    uploadArea.querySelector('p').innerHTML = '<span class="filename">' + fileInput.files[0].name + '</span>';
+  }
+});
+songName.addEventListener('input', () => {
+  uploadBtn.disabled = !fileInput.files.length || !songName.value.trim();
+});
+
+uploadBtn.addEventListener('click', async () => {
+  if (!fileInput.files.length || !songName.value.trim()) return;
+  const formData = new FormData();
+  formData.append('file', fileInput.files[0]);
+  formData.append('name', songName.value.trim());
+  uploadBtn.disabled = true;
+  uploadStatus.innerHTML = '<span class="spinner"></span> Processing...';
+  try {
+    const res = await fetch('/api/add-song', { method: 'POST', body: formData });
+    const data = await res.json();
+    uploadStatus.textContent = data.error ? 'Error: ' + data.error : 'Added "' + data.song + '"';
+  } catch (e) {
+    uploadStatus.textContent = 'Error: ' + e.message;
+  }
+  uploadBtn.disabled = false;
+});
+
+const listenBtn = document.getElementById('listenBtn');
+const status = document.getElementById('status');
+const resultCard = document.getElementById('resultCard');
+const songNameResult = document.getElementById('songNameResult');
+const confidenceResult = document.getElementById('confidenceResult');
+
+let audioChunks = [];
+let isRecording = false;
+
+listenBtn.addEventListener('click', async () => {
+  if (isRecording) return;
+
+  resultCard.classList.remove('show');
+  status.innerHTML = '<span class="spinner"></span> Accessing microphone...';
+
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    const audioContext = new AudioContext();
+    const source = audioContext.createMediaStreamSource(stream);
+    const sampleRate = audioContext.sampleRate;
+
+    const scriptNode = audioContext.createScriptProcessor(4096, 1, 1);
+    const pcmChunks = [];
+
+    source.connect(scriptNode);
+    scriptNode.connect(audioContext.destination);
+    scriptNode.onaudioprocess = (e) => {
+      const channel = e.inputBuffer.getChannelData(0);
+      pcmChunks.push(new Float32Array(channel));
+    };
+
+    listenBtn.classList.add('recording');
+    listenBtn.querySelector('.label').textContent = 'Listening';
+    listenBtn.querySelector('.icon').textContent = '🎤';
+    status.textContent = 'Recording...';
+    isRecording = true;
+
+    await new Promise(resolve => setTimeout(resolve, 5000));
+
+    source.disconnect();
+    scriptNode.disconnect();
+    stream.getTracks().forEach(t => t.stop());
+
+    status.innerHTML = '<span class="spinner"></span> Converting...';
+
+    let totalLen = pcmChunks.reduce((sum, c) => sum + c.length, 0);
+    const pcmData = new Float32Array(totalLen);
+    let offset = 0;
+    for (const chunk of pcmChunks) {
+      pcmData.set(chunk, offset);
+      offset += chunk.length;
+    }
+
+    const numSamples = pcmData.length;
+    const wavBuffer = new ArrayBuffer(44 + numSamples * 2);
+    const view = new DataView(wavBuffer);
+
+    function writeString(offset, str) {
+      for (let i = 0; i < str.length; i++) view.setUint8(offset + i, str.charCodeAt(i));
+    }
+    writeString(0, 'RIFF');
+    view.setUint32(4, 36 + numSamples * 2, true);
+    writeString(8, 'WAVE');
+    writeString(12, 'fmt ');
+    view.setUint32(16, 16, true);
+    view.setUint16(20, 1, true);
+    view.setUint16(22, 1, true);
+    view.setUint32(24, sampleRate, true);
+    view.setUint32(28, sampleRate * 2, true);
+    view.setUint16(32, 2, true);
+    view.setUint16(34, 16, true);
+    writeString(36, 'data');
+    view.setUint32(40, numSamples * 2, true);
+
+    for (let i = 0; i < numSamples; i++) {
+      let s = Math.max(-1, Math.min(1, pcmData[i]));
+      view.setInt16(44 + i * 2, s < 0 ? s * 0x8000 : s * 0x7FFF, true);
+    }
+
+    const wavBlob = new Blob([wavBuffer], { type: 'audio/wav' });
+
+    status.innerHTML = '<span class="spinner"></span> Matching...';
+
+    const formData = new FormData();
+    formData.append('file', wavBlob, 'recording.wav');
+    const res = await fetch('/api/match', { method: 'POST', body: formData });
+    const data = await res.json();
+
+    listenBtn.classList.remove('recording');
+    listenBtn.querySelector('.label').textContent = 'Start Listening';
+    listenBtn.querySelector('.icon').textContent = '🎵';
+    isRecording = false;
+
+    if (data.error) {
+      status.textContent = 'Error: ' + data.error;
+    } else if (data.match) {
+      resultCard.classList.add('show');
+      songNameResult.textContent = data.match;
+      confidenceResult.textContent = 'Identified';
+      status.textContent = '';
+    } else {
+      status.textContent = 'No match found';
+    }
+
+  } catch (e) {
+    listenBtn.classList.remove('recording');
+    listenBtn.querySelector('.label').textContent = 'Start Listening';
+    listenBtn.querySelector('.icon').textContent = '🎵';
+    isRecording = false;
+    status.textContent = 'Error: ' + (e.name === 'NotAllowedError' ? 'Microphone access denied' : e.message);
+  }
+});
+
+const songList = document.getElementById('songList');
+const emptyState = document.getElementById('emptyState');
+
+async function loadLibrary() {
+  try {
+    const res = await fetch('/api/songs');
+    const data = await res.json();
+    if (data.songs && data.songs.length) {
+      songList.innerHTML = data.songs.map((s, i) =>
+        '<li><span class="num">' + (i+1) + '</span><span class="name">' + s + '</span></li>'
+      ).join('');
+      songList.style.display = '';
+      emptyState.style.display = 'none';
+    } else {
+      songList.style.display = 'none';
+      emptyState.style.display = '';
+    }
+  } catch (e) {
+    songList.innerHTML = '<li>Error loading songs</li>';
+  }
+}
+
+document.getElementById('refreshBtn').addEventListener('click', loadLibrary);
+document.querySelector('.tab[data-tab="library"]').addEventListener('click', () => setTimeout(loadLibrary, 100));
+</script>
+</body>
+</html>

@@ -7,55 +7,88 @@ import (
 	_ "modernc.org/sqlite"
 )
 
-func LookUpMatches( db *sql.DB, queryFps []fingerprint.Fingerprint) (songN string ,err error) {
-		voteCount := make(map[int]int)
-	for _,fp := range queryFps {
-		result,err := db.Query(
-			"SELECT song_id FROM Fingerprints WHERE hash = ?",fp.Hash)
+func LookUpMatches(db *sql.DB, queryFps []fingerprint.Fingerprint) (songN string, err error) {
+	type offsetCount struct {
+		offset int
+		count  int
+	}
+	votes := make(map[int][]offsetCount)
+
+	for _, fp := range queryFps {
+		rows, err := db.Query(
+			"SELECT song_id, anchor_time FROM fingerprints WHERE hash = ?", fp.Hash)
 		if err != nil {
-			return "",err
+			return "", err
 		}
 
-		for result.Next(){
-			var songID int 
+		for rows.Next() {
+			var songID, dbAnchor int
 
-			err := result.Scan(&songID)
+			err := rows.Scan(&songID, &dbAnchor)
 			if err != nil {
-				return "",err
+				rows.Close()
+				return "", err
 			}
-			voteCount[songID]++
-			
+			offset := fp.AnchorTime - dbAnchor
+			votes[songID] = append(votes[songID], offsetCount{offset, 1})
 		}
-
-		result.Close()
+		rows.Close()
 	}
 
-	if len(voteCount) == 0 {
+	if len(votes) == 0 {
 		return "", nil
 	}
-	bestSongID := 0
-	bestVotes := 0
 
- for songID,votes := range voteCount {
-		if votes > bestVotes {
-			bestVotes = votes
-			bestSongID = songID
+	type scored struct{ id, score int }
+	var best scored
+
+	for songID, offsets := range votes {
+		offsetCounts := make(map[int]int)
+		maxCount := 0
+		for _, oc := range offsets {
+			offsetCounts[oc.offset]++
+			if offsetCounts[oc.offset] > maxCount {
+				maxCount = offsetCounts[oc.offset]
+			}
+		}
+		if maxCount > best.score {
+			best = scored{songID, maxCount}
 		}
 	}
+
+	if best.score == 0 {
+		return "", nil
+	}
+
 	var songName string
+	err = db.QueryRow(
+		"SELECT name FROM songs WHERE id = ?", best.id,
+	).Scan(&songName)
 
-err = db.QueryRow(
-		"SELECT name FROM songs WHERE id = ?",
-		bestSongID,
-).Scan(&songName)
-
-if err != nil {
+	if err != nil {
 		if err == sql.ErrNoRows {
 			return "", nil
 		}
 		return "", err
+	}
+
+	return songName, nil
 }
 
-return songName, nil
-	
+func ListSongs(database *sql.DB) ([]string, error) {
+	rows, err := database.Query("SELECT name FROM songs ORDER BY id")
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var names []string
+	for rows.Next() {
+		var name string
+		if err := rows.Scan(&name); err != nil {
+			return nil, err
+		}
+		names = append(names, name)
+	}
+	return names, nil
 }

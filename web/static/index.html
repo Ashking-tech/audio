@@ -4,41 +4,68 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Audio Fingerprint</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;450;500;600;700&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
-@import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Inter:wght@400;500;600&display=swap');
+/* Hallmark · pre-emit critique: P4 H4 E4 S4 R4 V4 */
+/* Hallmark · genre: atmospheric · macrostructure: workbench · theme: midnight · enrichment: none · nav: N5 · footer: none · theme-diff: paper-band=dark(14%) vs light(96%) · display-style=grotesk-sans vs serif · accent-hue=warm(35) vs warm(80) */
 
 :root {
-  --bg: #faf8f5;
-  --surface: #fffdf9;
-  --border: #e8e2d8;
-  --text: #2d2922;
-  --text-secondary: #847a6c;
-  --text-tertiary: #b0a597;
-  --accent: #9a6b4b;
-  --accent-hover: #855a3e;
-  --accent-light: #f5ede6;
-  --success: #6b8f5e;
-  --error: #c44d4d;
-  --radius: 16px;
-  --radius-sm: 10px;
+  --font-display: "Geist", ui-sans-serif, system-ui, sans-serif;
+  --font-body:    "Geist", ui-sans-serif, system-ui, sans-serif;
+  --font-outlier: "Geist Mono", ui-monospace, monospace;
+
+  --color-paper:    oklch(14% 0.008 35);
+  --color-paper-2:  oklch(18% 0.012 35);
+  --color-paper-3:  oklch(22% 0.014 35);
+  --color-rule:     oklch(28% 0.012 35);
+  --color-neutral:  oklch(54% 0.010 35);
+  --color-muted:    oklch(70% 0.008 35);
+  --color-ink:      oklch(93% 0.006 35);
+  --color-ink-dim:  oklch(74% 0.008 35);
+  --color-accent:   oklch(72% 0.18 65);
+  --color-accent-dim: oklch(62% 0.14 65);
+  --color-accent-glow: oklch(72% 0.18 65 / 0.12);
+  --color-focus:    oklch(72% 0.18 65);
+  --color-success:  oklch(68% 0.14 145);
+  --color-error:    oklch(60% 0.18 30);
+
+  --space-3xs: 0.125rem;
+  --space-2xs: 0.25rem;
+  --space-xs:  0.5rem;
+  --space-sm:  0.75rem;
+  --space-md:  1rem;
+  --space-lg:  1.5rem;
+  --space-xl:  2.5rem;
+  --space-2xl: 4rem;
+
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --radius-sm: 0.5rem;
+  --radius-md: 0.875rem;
+  --radius-lg: 1.25rem;
 }
 
-* { margin: 0; padding: 0; box-sizing: border-box; }
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+html, body {
+  overflow-x: clip;
+  -webkit-font-smoothing: antialiased;
+}
 
 body {
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-  background: var(--bg);
-  color: var(--text);
+  font-family: var(--font-body);
+  font-weight: 400;
+  background: var(--color-paper);
+  color: var(--color-ink);
   min-height: 100vh;
   display: flex;
   flex-direction: column;
   align-items: center;
-  -webkit-font-smoothing: antialiased;
-  position: relative;
-  overflow-x: hidden;
+  line-height: 1.55;
 }
 
-.bg-notes {
+.canvas {
   position: fixed;
   inset: 0;
   pointer-events: none;
@@ -46,370 +73,430 @@ body {
   overflow: hidden;
 }
 
-.bg-notes span {
+.canvas::before,
+.canvas::after {
+  content: "";
   position: absolute;
-  font-family: serif;
-  color: var(--accent);
-  opacity: 0;
-  animation: floatNote linear infinite;
-  animation-delay: calc(var(--d) * 1s);
-  animation-duration: calc(var(--dur) * 1s);
-  font-size: calc(var(--size) * 1rem);
-  left: calc(var(--x) * 1%);
+  border-radius: 50%;
+  filter: blur(80px);
+  will-change: transform;
 }
 
-@keyframes floatNote {
-  0% {
-    opacity: 0;
-    transform: translateY(100vh) rotate(0deg) scale(0.5);
-  }
-  10% {
-    opacity: 0.25;
-  }
-  50% {
-    opacity: 0.18;
-  }
-  90% {
-    opacity: 0.25;
-  }
-  100% {
-    opacity: 0;
-    transform: translateY(-10vh) rotate(360deg) scale(1);
-  }
+.canvas::before {
+  width: min(70vw, 600px);
+  height: min(70vw, 600px);
+  background: oklch(62% 0.14 55 / 0.12);
+  top: -15%;
+  right: -10%;
+}
+
+.canvas::after {
+  width: min(50vw, 400px);
+  height: min(50vw, 400px);
+  background: oklch(62% 0.10 30 / 0.08);
+  bottom: -10%;
+  left: -5%;
 }
 
 .container {
   position: relative;
   z-index: 1;
-  max-width: 480px;
   width: 100%;
-  padding: 40px 20px;
+  max-width: 520px;
+  padding: var(--space-xl) var(--space-md);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
+  min-height: 100vh;
 }
 
 header {
-  margin-bottom: 32px;
   text-align: center;
+  padding-top: var(--space-lg);
 }
 
 .logo {
-  font-family: 'DM Serif Display', serif;
-  font-size: 2.5rem;
-  font-style: italic;
-  color: var(--accent);
-  line-height: 1;
-  margin-bottom: 8px;
+  font-family: var(--font-display);
+  font-size: 1.75rem;
+  font-weight: 700;
   letter-spacing: -0.03em;
+  color: var(--color-accent);
+  line-height: 1;
+  margin-bottom: var(--space-xs);
 }
 
 h1 {
-  font-family: 'DM Serif Display', serif;
-  font-size: 1.75rem;
-  font-weight: 400;
+  font-family: var(--font-display);
+  font-size: 1.125rem;
+  font-weight: 500;
   letter-spacing: -0.02em;
-  margin-bottom: 4px;
+  color: var(--color-ink);
+  line-height: 1.2;
 }
 
 .subtitle {
-  color: var(--text-secondary);
-  font-size: 0.875rem;
+  font-size: 0.8125rem;
+  color: var(--color-muted);
+  margin-top: var(--space-3xs);
 }
 
-.tabs {
+.tab-bar {
   display: flex;
-  gap: 4px;
-  margin-bottom: 24px;
-  border-bottom: 1px solid var(--border);
-  padding-bottom: 0;
+  gap: var(--space-2xs);
+  padding: var(--space-2xs);
+  background: var(--color-paper-2);
+  border-radius: var(--radius-lg);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  margin-bottom: 0;
 }
 
-.tab {
+.tab-btn {
   flex: 1;
-  padding: 10px 12px;
+  padding: var(--space-sm) var(--space-md);
   border: none;
+  border-radius: var(--radius-md);
   background: transparent;
-  color: var(--text-tertiary);
+  color: var(--color-ink-dim);
+  font-family: var(--font-body);
   font-size: 0.8125rem;
   font-weight: 500;
   cursor: pointer;
-  border-bottom: 2px solid transparent;
-  margin-bottom: -1px;
-  transition: all 0.2s;
+  transition: background 0.2s var(--ease-out), color 0.2s var(--ease-out);
+  white-space: nowrap;
 }
 
-.tab.active {
-  color: var(--text);
-  border-bottom-color: var(--accent);
+.tab-btn:hover {
+  color: var(--color-ink);
+  background: var(--color-paper-3);
 }
 
-.tab:hover:not(.active) {
-  color: var(--text-secondary);
+.tab-btn:focus-visible {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+.tab-btn:active {
+  background: var(--color-paper-3);
+}
+
+.tab-btn.active {
+  background: var(--color-paper);
+  color: var(--color-ink);
 }
 
 .panel { display: none; }
-.panel.active { display: block; }
+.panel.active { display: flex; flex-direction: column; gap: var(--space-md); }
 
-/* Identify */
-.identify-card {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 48px 28px 36px;
+.card {
+  background: var(--color-paper-2);
+  border: 1px solid var(--color-rule);
+  border-radius: var(--radius-lg);
+  padding: var(--space-xl) var(--space-lg);
+  transition: background 0.2s var(--ease-out);
+}
+
+/* Identify panel */
+.identify-body {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-lg);
   text-align: center;
 }
 
 .listen-btn {
-  width: 112px;
-  height: 112px;
+  width: 104px;
+  height: 104px;
   border-radius: 50%;
   border: none;
-  background: var(--accent-light);
-  color: var(--accent);
-  font-size: 0.875rem;
+  background: var(--color-paper-3);
+  color: var(--color-accent);
   cursor: pointer;
-  transition: all 0.25s ease;
-  margin: 0 auto 28px;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
-  flex-direction: column;
-  gap: 2px;
+  gap: var(--space-3xs);
+  transition: background 0.2s var(--ease-out), transform 0.2s var(--ease-out), box-shadow 0.2s var(--ease-out);
+  font-family: var(--font-body);
+  position: relative;
 }
 
 .listen-btn:hover {
-  background: #edd9cc;
+  background: var(--color-rule);
   transform: scale(1.04);
-  box-shadow: 0 8px 24px rgba(154,107,75,0.15);
+  box-shadow: 0 0 32px var(--color-accent-glow);
+}
+
+.listen-btn:focus-visible {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 3px;
 }
 
 .listen-btn:active {
   transform: scale(0.97);
-}
-
-.listen-btn.recording {
-  background: #f8e8e8;
-  color: var(--error);
-  animation: pulse 1.2s ease-in-out infinite;
+  background: var(--color-paper-3);
 }
 
 .listen-btn .icon {
-  font-size: 1.5rem;
+  font-size: 1.375rem;
   line-height: 1;
   pointer-events: none;
 }
 
 .listen-btn .label {
-  font-size: 0.75rem;
+  font-size: 0.6875rem;
   font-weight: 500;
   pointer-events: none;
+  color: var(--color-ink-dim);
 }
 
-@keyframes pulse {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(196,77,77,0.12); }
-  50% { box-shadow: 0 0 0 16px rgba(196,77,77,0); }
+.listen-btn.recording {
+  background: oklch(22% 0.04 30);
+  color: var(--color-error);
+  animation: pulse-ring 1.4s var(--ease-out) infinite;
+}
+
+.listen-btn.recording .label {
+  color: var(--color-error);
+}
+
+@keyframes pulse-ring {
+  0% { box-shadow: 0 0 0 0 oklch(60% 0.18 30 / 0.2); }
+  60% { box-shadow: 0 0 0 18px oklch(60% 0.18 30 / 0); }
+  100% { box-shadow: 0 0 0 0 oklch(60% 0.18 30 / 0); }
 }
 
 .status {
   font-size: 0.8125rem;
-  color: var(--text-secondary);
-  min-height: 20px;
+  color: var(--color-ink-dim);
+  min-height: 1.25rem;
+  line-height: 1.4;
 }
 
 .status .spinner {
   display: inline-block;
-  width: 14px;
-  height: 14px;
-  border: 2px solid var(--border);
-  border-top-color: var(--accent);
+  width: 12px;
+  height: 12px;
+  border: 1.5px solid var(--color-rule);
+  border-top-color: var(--color-accent);
   border-radius: 50%;
-  animation: spin 0.6s linear infinite;
-  margin-right: 6px;
+  animation: spin 0.7s linear infinite;
+  margin-right: var(--space-2xs);
   vertical-align: middle;
 }
 
-@keyframes spin {
-  to { transform: rotate(360deg); }
-}
+@keyframes spin { to { transform: rotate(360deg); } }
 
 .result-card {
   display: none;
-  margin-top: 24px;
-  padding: 20px;
-  background: #f8f5f0;
-  border-radius: var(--radius-sm);
-  animation: fadeIn 0.3s ease;
+  background: var(--color-paper-3);
+  border: 1px solid var(--color-rule);
+  border-radius: var(--radius-md);
+  padding: var(--space-md) var(--space-lg);
+  animation: fadeIn 0.3s var(--ease-out);
+  width: 100%;
 }
 
 .result-card.show { display: block; }
 
 @keyframes fadeIn {
-  from { opacity: 0; transform: translateY(4px); }
+  from { opacity: 0; transform: translateY(6px); }
   to { opacity: 1; transform: translateY(0); }
 }
 
 .result-card .song-name {
-  font-family: 'DM Serif Display', serif;
-  font-size: 1.25rem;
-  font-weight: 400;
-  margin-bottom: 4px;
+  font-family: var(--font-display);
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: var(--color-ink);
+  margin-bottom: var(--space-3xs);
 }
 
 .result-card .confidence {
-  font-size: 0.8125rem;
-  color: var(--success);
+  font-size: 0.75rem;
+  color: var(--color-success);
+  font-family: var(--font-outlier);
 }
 
-/* Upload */
-.upload-card {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 28px;
+/* Upload panel */
+.upload-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
 }
 
 .upload-area {
-  border: 1.5px dashed var(--border);
-  border-radius: var(--radius-sm);
-  padding: 36px 16px;
+  border: 1.5px dashed var(--color-rule);
+  border-radius: var(--radius-md);
+  padding: var(--space-xl) var(--space-md);
   text-align: center;
   cursor: pointer;
-  transition: all 0.25s ease;
-  margin-bottom: 16px;
+  transition: border-color 0.2s var(--ease-out), background 0.2s var(--ease-out);
 }
 
 .upload-area:hover {
-  border-color: var(--accent);
-  background: #fcf9f6;
+  border-color: var(--color-accent);
+  background: var(--color-paper-3);
+}
+
+.upload-area:focus-visible {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 2px;
 }
 
 .upload-area .icon {
-  font-size: 1.5rem;
-  margin-bottom: 8px;
+  font-size: 1.25rem;
+  margin-bottom: var(--space-xs);
+  line-height: 1;
 }
 
 .upload-area p {
   font-size: 0.8125rem;
-  color: var(--text-secondary);
+  color: var(--color-ink-dim);
 }
 
 .upload-area .filename {
-  font-family: 'DM Serif Display', serif;
-  font-size: 1rem;
-  color: var(--text);
-  font-style: italic;
+  font-family: var(--font-body);
+  font-weight: 450;
+  color: var(--color-ink);
 }
 
 .upload-area input[type="file"] { display: none; }
 
-#songName {
+.form-field {
   width: 100%;
-  padding: 12px 14px;
-  border: 1px solid var(--border);
+  padding: var(--space-sm) var(--space-md);
+  border: 1px solid var(--color-rule);
   border-radius: var(--radius-sm);
-  background: var(--bg);
-  color: var(--text);
+  background: var(--color-paper);
+  color: var(--color-ink);
+  font-family: var(--font-body);
   font-size: 0.875rem;
-  font-family: 'Inter', sans-serif;
   outline: none;
-  transition: border-color 0.2s;
+  transition: border-color 0.2s var(--ease-out);
+  line-height: 1.5;
 }
 
-#songName::placeholder {
-  color: var(--text-tertiary);
+.form-field::placeholder {
+  color: var(--color-neutral);
 }
 
-#songName:focus {
-  border-color: var(--accent);
+.form-field:focus {
+  border-color: var(--color-accent);
 }
 
 .submit-btn {
   width: 100%;
-  padding: 12px 16px;
+  padding: var(--space-sm) var(--space-md);
   border: none;
   border-radius: var(--radius-sm);
-  background: var(--accent);
-  color: #fff;
+  background: var(--color-accent);
+  color: var(--color-paper);
+  font-family: var(--font-body);
   font-size: 0.875rem;
   font-weight: 500;
-  font-family: 'Inter', sans-serif;
   cursor: pointer;
-  margin-top: 12px;
-  transition: all 0.2s ease;
+  transition: background 0.2s var(--ease-out), transform 0.15s var(--ease-out), box-shadow 0.2s var(--ease-out);
+  line-height: 1.5;
 }
 
 .submit-btn:hover:not(:disabled) {
-  background: var(--accent-hover);
-  box-shadow: 0 4px 16px rgba(154,107,75,0.2);
+  background: oklch(68% 0.18 65);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 20px var(--color-accent-glow);
+}
+
+.submit-btn:focus-visible {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 2px;
 }
 
 .submit-btn:active:not(:disabled) {
-  transform: scale(0.98);
+  transform: translateY(0);
+  background: var(--color-accent-dim);
 }
 
 .submit-btn:disabled {
-  opacity: 0.3;
+  opacity: 0.25;
   cursor: not-allowed;
 }
 
 #uploadStatus {
-  margin-top: 14px;
   font-size: 0.8125rem;
-  color: var(--text-secondary);
-  min-height: 20px;
+  color: var(--color-ink-dim);
+  min-height: 1.25rem;
 }
 
-/* Library */
-.library-card {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 24px 28px;
+/* Library panel */
+.library-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
 }
 
 .library-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 4px;
-  padding-bottom: 14px;
-  border-bottom: 1px solid var(--border);
+  padding-bottom: var(--space-sm);
+  border-bottom: 1px solid var(--color-rule);
+  gap: var(--space-md);
 }
 
 .library-header h2 {
-  font-family: 'DM Serif Display', serif;
-  font-size: 0.9375rem;
-  font-weight: 400;
-  color: var(--text);
+  font-family: var(--font-body);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--color-ink-dim);
+  letter-spacing: 0.01em;
+  text-transform: uppercase;
 }
 
 .refresh-btn {
-  padding: 5px 12px;
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  background: var(--surface);
-  color: var(--text-tertiary);
+  padding: var(--space-2xs) var(--space-sm);
+  border: 1px solid var(--color-rule);
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--color-ink-dim);
+  font-family: var(--font-body);
   font-size: 0.75rem;
-  font-family: 'Inter', sans-serif;
+  font-weight: 500;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: border-color 0.2s var(--ease-out), color 0.2s var(--ease-out);
+  line-height: 1.4;
 }
 
 .refresh-btn:hover {
-  border-color: var(--accent);
-  color: var(--accent);
+  border-color: var(--color-accent);
+  color: var(--color-accent);
+}
+
+.refresh-btn:focus-visible {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+.refresh-btn:active {
+  opacity: 0.7;
 }
 
 .song-list {
   list-style: none;
+  display: flex;
+  flex-direction: column;
 }
 
 .song-list li {
-  padding: 12px 0;
+  padding: var(--space-sm) 0;
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: var(--space-sm);
   font-size: 0.875rem;
-  border-bottom: 1px solid #f0ebe4;
+  border-bottom: 1px solid var(--color-rule);
   transition: opacity 0.15s;
+  line-height: 1.4;
 }
 
 .song-list li:last-child {
@@ -417,281 +504,321 @@ h1 {
 }
 
 .song-list li .num {
-  color: var(--text-tertiary);
+  color: var(--color-neutral);
   font-size: 0.75rem;
-  width: 24px;
+  width: 1.75rem;
   text-align: right;
   font-variant-numeric: tabular-nums;
+  font-family: var(--font-outlier);
+  flex-shrink: 0;
 }
 
 .song-list li .name {
   font-weight: 450;
+  color: var(--color-ink);
 }
 
 .empty-state {
-  color: var(--text-tertiary);
+  color: var(--color-neutral);
   font-size: 0.8125rem;
   text-align: center;
-  padding: 32px 0;
+  padding: var(--space-xl) 0;
 }
 
+/* Utilities */
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+/* Responsive */
 @media (max-width: 480px) {
-  .container { padding: 24px 16px; }
-  .logo { font-size: 2rem; }
-  h1 { font-size: 1.5rem; }
-  .identify-card { padding: 36px 20px 28px; }
-  .listen-btn { width: 100px; height: 100px; }
-  .upload-card { padding: 20px; }
+  .container {
+    padding: var(--space-lg) var(--space-sm);
+  }
+  header { padding-top: var(--space-md); }
+  .logo { font-size: 1.5rem; }
+  h1 { font-size: 1rem; }
+  .card { padding: var(--space-lg) var(--space-md); }
+  .listen-btn { width: 92px; height: 92px; }
+  .listen-btn .icon { font-size: 1.125rem; }
+  .upload-area { padding: var(--space-lg) var(--space-sm); }
+}
+
+@media (max-width: 375px) {
+  .tab-btn { font-size: 0.75rem; padding: var(--space-xs) var(--space-sm); }
+  .card { padding: var(--space-md); border-radius: var(--radius-md); }
+  .container { padding: var(--space-md) var(--space-xs); }
+}
+
+@media (max-width: 320px) {
+  .tab-btn { font-size: 0.6875rem; padding: var(--space-xs) var(--space-2xs); }
 }
 </style>
 </head>
 <body>
-<div class="bg-notes">
-  <span style="--x:5; --size:1.2; --dur:18; --d:0;">♫</span>
-  <span style="--x:15; --size:0.8; --dur:22; --d:3;">♪</span>
-  <span style="--x:25; --size:1.4; --dur:16; --d:6;">♫</span>
-  <span style="--x:35; --size:0.6; --dur:20; --d:1;">♪</span>
-  <span style="--x:45; --size:1.0; --dur:24; --d:8;">♩</span>
-  <span style="--x:55; --size:1.3; --dur:17; --d:4;">♫</span>
-  <span style="--x:65; --size:0.7; --dur:21; --d:10;">♪</span>
-  <span style="--x:75; --size:1.1; --dur:19; --d:2;">♩</span>
-  <span style="--x:85; --size:0.9; --dur:23; --d:7;">♫</span>
-  <span style="--x:92; --size:1.5; --dur:15; --d:5;">♪</span>
-</div>
+
+<div class="canvas" aria-hidden="true"></div>
 
 <div class="container">
   <header>
-    <div class="logo">♫</div>
+    <div class="logo">Fingerprint</div>
     <h1>Audio Fingerprint</h1>
     <p class="subtitle">Identify songs by sound</p>
   </header>
 
-  <div class="tabs">
-    <button class="tab active" data-tab="identify">Identify</button>
-    <button class="tab" data-tab="library">Library</button>
-    <button class="tab" data-tab="upload">Add Song</button>
-  </div>
+  <nav class="tab-bar" role="tablist" aria-label="App sections">
+    <button class="tab-btn active" role="tab" aria-selected="true" aria-controls="panel-identify" data-tab="identify">Identify</button>
+    <button class="tab-btn" role="tab" aria-selected="false" aria-controls="panel-library" data-tab="library">Library</button>
+    <button class="tab-btn" role="tab" aria-selected="false" aria-controls="panel-upload" data-tab="upload">Add Song</button>
+  </nav>
 
-  <div class="panel active" id="panel-identify">
-    <div class="identify-card">
-      <button class="listen-btn" id="listenBtn">
-        <span class="icon">🎵</span>
-        <span class="label">Start Listening</span>
-      </button>
-      <div class="status" id="status">Tap the button to identify a song</div>
-      <div class="result-card" id="resultCard">
-        <div class="song-name" id="songNameResult"></div>
-        <div class="confidence" id="confidenceResult"></div>
+  <div class="panel active" id="panel-identify" role="tabpanel">
+    <div class="card">
+      <div class="identify-body">
+        <button class="listen-btn" id="listenBtn" aria-label="Start listening for music">
+          <span class="icon" aria-hidden="true">&#9835;</span>
+          <span class="label">Listen</span>
+        </button>
+        <div class="status" id="status" aria-live="polite">Tap the button to identify a song</div>
+        <div class="result-card" id="resultCard">
+          <div class="song-name" id="songNameResult"></div>
+          <div class="confidence" id="confidenceResult"></div>
+        </div>
       </div>
     </div>
   </div>
 
-  <div class="panel" id="panel-upload">
-    <div class="upload-card">
-      <div class="upload-area" id="uploadArea">
-        <div class="icon">🎤</div>
-        <p>Choose a WAV file</p>
-        <input type="file" id="fileInput" accept=".wav">
+  <div class="panel" id="panel-upload" role="tabpanel">
+    <div class="card">
+      <div class="upload-body">
+        <div class="upload-area" id="uploadArea" role="button" tabindex="0" aria-label="Choose a WAV file to upload">
+          <div class="icon" aria-hidden="true">&#9834;</div>
+          <p>Choose a WAV file</p>
+          <input type="file" id="fileInput" accept=".wav">
+        </div>
+        <input type="text" class="form-field" id="songName" placeholder="Song name">
+        <button class="submit-btn" id="uploadBtn" disabled>Upload &amp; Fingerprint</button>
+        <div id="uploadStatus" aria-live="polite"></div>
       </div>
-      <input type="text" id="songName" placeholder="Song name">
-      <button class="submit-btn" id="uploadBtn" disabled>Upload &amp; Fingerprint</button>
-      <div id="uploadStatus"></div>
     </div>
   </div>
 
-  <div class="panel" id="panel-library">
-    <div class="library-card">
-      <div class="library-header">
-        <h2>Stored Songs</h2>
-        <button class="refresh-btn" id="refreshBtn">Refresh</button>
+  <div class="panel" id="panel-library" role="tabpanel">
+    <div class="card">
+      <div class="library-body">
+        <div class="library-header">
+          <h2>Stored Songs</h2>
+          <button class="refresh-btn" id="refreshBtn">Refresh</button>
+        </div>
+        <ul class="song-list" id="songList" aria-label="List of songs in the database"></ul>
+        <div class="empty-state" id="emptyState">No songs in library yet</div>
       </div>
-      <ul class="song-list" id="songList"></ul>
-      <div class="empty-state" id="emptyState">No songs in library yet</div>
     </div>
   </div>
 </div>
 
 <script>
-document.querySelectorAll('.tab').forEach(tab => {
-  tab.addEventListener('click', () => {
-    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
-    tab.classList.add('active');
-    document.getElementById('panel-' + tab.dataset.tab).classList.add('active');
+(function() {
+  const tabBtns = document.querySelectorAll('.tab-btn');
+  const panels = {
+    identify: document.getElementById('panel-identify'),
+    library: document.getElementById('panel-library'),
+    upload: document.getElementById('panel-upload')
+  };
+
+  tabBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+      const tab = btn.dataset.tab;
+      tabBtns.forEach(b => {
+        b.classList.remove('active');
+        b.setAttribute('aria-selected', 'false');
+      });
+      Object.values(panels).forEach(p => p.classList.remove('active'));
+      btn.classList.add('active');
+      btn.setAttribute('aria-selected', 'true');
+      panels[tab].classList.add('active');
+    });
   });
-});
 
-const fileInput = document.getElementById('fileInput');
-const uploadArea = document.getElementById('uploadArea');
-const songName = document.getElementById('songName');
-const uploadBtn = document.getElementById('uploadBtn');
-const uploadStatus = document.getElementById('uploadStatus');
+  const fileInput = document.getElementById('fileInput');
+  const uploadArea = document.getElementById('uploadArea');
+  const songName = document.getElementById('songName');
+  const uploadBtn = document.getElementById('uploadBtn');
+  const uploadStatus = document.getElementById('uploadStatus');
 
-uploadArea.addEventListener('click', () => fileInput.click());
-fileInput.addEventListener('change', () => {
-  uploadBtn.disabled = !fileInput.files.length || !songName.value.trim();
-  if (fileInput.files.length) {
-    uploadArea.querySelector('p').innerHTML = '<span class="filename">' + fileInput.files[0].name + '</span>';
+  function updateUploadBtn() {
+    uploadBtn.disabled = !fileInput.files.length || !songName.value.trim();
   }
-});
-songName.addEventListener('input', () => {
-  uploadBtn.disabled = !fileInput.files.length || !songName.value.trim();
-});
 
-uploadBtn.addEventListener('click', async () => {
-  if (!fileInput.files.length || !songName.value.trim()) return;
-  const formData = new FormData();
-  formData.append('file', fileInput.files[0]);
-  formData.append('name', songName.value.trim());
-  uploadBtn.disabled = true;
-  uploadStatus.innerHTML = '<span class="spinner"></span> Processing...';
-  try {
-    const res = await fetch('/api/add-song', { method: 'POST', body: formData });
-    const data = await res.json();
-    uploadStatus.textContent = data.error ? 'Error: ' + data.error : 'Added "' + data.song + '"';
-  } catch (e) {
-    uploadStatus.textContent = 'Error: ' + e.message;
-  }
-  uploadBtn.disabled = false;
-});
+  uploadArea.addEventListener('click', () => fileInput.click());
+  uploadArea.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); fileInput.click(); }
+  });
 
-const listenBtn = document.getElementById('listenBtn');
-const status = document.getElementById('status');
-const resultCard = document.getElementById('resultCard');
-const songNameResult = document.getElementById('songNameResult');
-const confidenceResult = document.getElementById('confidenceResult');
-
-let audioChunks = [];
-let isRecording = false;
-
-listenBtn.addEventListener('click', async () => {
-  if (isRecording) return;
-
-  resultCard.classList.remove('show');
-  status.innerHTML = '<span class="spinner"></span> Accessing microphone...';
-
-  try {
-    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-    const audioContext = new AudioContext();
-    const source = audioContext.createMediaStreamSource(stream);
-    const sampleRate = audioContext.sampleRate;
-
-    const scriptNode = audioContext.createScriptProcessor(4096, 1, 1);
-    const pcmChunks = [];
-
-    source.connect(scriptNode);
-    scriptNode.connect(audioContext.destination);
-    scriptNode.onaudioprocess = (e) => {
-      const channel = e.inputBuffer.getChannelData(0);
-      pcmChunks.push(new Float32Array(channel));
-    };
-
-    listenBtn.classList.add('recording');
-    listenBtn.querySelector('.label').textContent = 'Listening';
-    listenBtn.querySelector('.icon').textContent = '🎤';
-    status.textContent = 'Recording...';
-    isRecording = true;
-
-    await new Promise(resolve => setTimeout(resolve, 5000));
-
-    source.disconnect();
-    scriptNode.disconnect();
-    stream.getTracks().forEach(t => t.stop());
-
-    status.innerHTML = '<span class="spinner"></span> Converting...';
-
-    let totalLen = pcmChunks.reduce((sum, c) => sum + c.length, 0);
-    const pcmData = new Float32Array(totalLen);
-    let offset = 0;
-    for (const chunk of pcmChunks) {
-      pcmData.set(chunk, offset);
-      offset += chunk.length;
+  fileInput.addEventListener('change', () => {
+    updateUploadBtn();
+    if (fileInput.files.length) {
+      uploadArea.querySelector('p').innerHTML = '<span class="filename">' + fileInput.files[0].name + '</span>';
     }
+  });
+  songName.addEventListener('input', updateUploadBtn);
 
-    const numSamples = pcmData.length;
-    const wavBuffer = new ArrayBuffer(44 + numSamples * 2);
-    const view = new DataView(wavBuffer);
-
-    function writeString(offset, str) {
-      for (let i = 0; i < str.length; i++) view.setUint8(offset + i, str.charCodeAt(i));
-    }
-    writeString(0, 'RIFF');
-    view.setUint32(4, 36 + numSamples * 2, true);
-    writeString(8, 'WAVE');
-    writeString(12, 'fmt ');
-    view.setUint32(16, 16, true);
-    view.setUint16(20, 1, true);
-    view.setUint16(22, 1, true);
-    view.setUint32(24, sampleRate, true);
-    view.setUint32(28, sampleRate * 2, true);
-    view.setUint16(32, 2, true);
-    view.setUint16(34, 16, true);
-    writeString(36, 'data');
-    view.setUint32(40, numSamples * 2, true);
-
-    for (let i = 0; i < numSamples; i++) {
-      let s = Math.max(-1, Math.min(1, pcmData[i]));
-      view.setInt16(44 + i * 2, s < 0 ? s * 0x8000 : s * 0x7FFF, true);
-    }
-
-    const wavBlob = new Blob([wavBuffer], { type: 'audio/wav' });
-
-    status.innerHTML = '<span class="spinner"></span> Matching...';
-
+  uploadBtn.addEventListener('click', async () => {
+    if (!fileInput.files.length || !songName.value.trim()) return;
     const formData = new FormData();
-    formData.append('file', wavBlob, 'recording.wav');
-    const res = await fetch('/api/match', { method: 'POST', body: formData });
-    const data = await res.json();
-
-    listenBtn.classList.remove('recording');
-    listenBtn.querySelector('.label').textContent = 'Start Listening';
-    listenBtn.querySelector('.icon').textContent = '🎵';
-    isRecording = false;
-
-    if (data.error) {
-      status.textContent = 'Error: ' + data.error;
-    } else if (data.match) {
-      resultCard.classList.add('show');
-      songNameResult.textContent = data.match;
-      confidenceResult.textContent = 'Identified';
-      status.textContent = '';
-    } else {
-      status.textContent = 'No match found';
+    formData.append('file', fileInput.files[0]);
+    formData.append('name', songName.value.trim());
+    uploadBtn.disabled = true;
+    uploadStatus.innerHTML = '<span class="spinner"></span> Processing...';
+    try {
+      const res = await fetch('/api/add-song', { method: 'POST', body: formData });
+      const data = await res.json();
+      uploadStatus.textContent = data.error ? 'Error: ' + data.error : 'Added "' + data.song + '"';
+    } catch (e) {
+      uploadStatus.textContent = 'Error: ' + e.message;
     }
+    uploadBtn.disabled = false;
+  });
 
-  } catch (e) {
-    listenBtn.classList.remove('recording');
-    listenBtn.querySelector('.label').textContent = 'Start Listening';
-    listenBtn.querySelector('.icon').textContent = '🎵';
-    isRecording = false;
-    status.textContent = 'Error: ' + (e.name === 'NotAllowedError' ? 'Microphone access denied' : e.message);
-  }
-});
+  const listenBtn = document.getElementById('listenBtn');
+  const status = document.getElementById('status');
+  const resultCard = document.getElementById('resultCard');
+  const songNameResult = document.getElementById('songNameResult');
+  const confidenceResult = document.getElementById('confidenceResult');
 
-const songList = document.getElementById('songList');
-const emptyState = document.getElementById('emptyState');
+  let isRecording = false;
 
-async function loadLibrary() {
-  try {
-    const res = await fetch('/api/songs');
-    const data = await res.json();
-    if (data.songs && data.songs.length) {
-      songList.innerHTML = data.songs.map((s, i) =>
-        '<li><span class="num">' + (i+1) + '</span><span class="name">' + s + '</span></li>'
-      ).join('');
-      songList.style.display = '';
-      emptyState.style.display = 'none';
-    } else {
-      songList.style.display = 'none';
-      emptyState.style.display = '';
+  listenBtn.addEventListener('click', async () => {
+    if (isRecording) return;
+
+    resultCard.classList.remove('show');
+    status.innerHTML = '<span class="spinner"></span> Accessing microphone...';
+
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const audioContext = new AudioContext();
+      const source = audioContext.createMediaStreamSource(stream);
+      const sampleRate = audioContext.sampleRate;
+
+      const scriptNode = audioContext.createScriptProcessor(4096, 1, 1);
+      const pcmChunks = [];
+
+      source.connect(scriptNode);
+      scriptNode.connect(audioContext.destination);
+      scriptNode.onaudioprocess = (e) => {
+        const channel = e.inputBuffer.getChannelData(0);
+        pcmChunks.push(new Float32Array(channel));
+      };
+
+      listenBtn.classList.add('recording');
+      listenBtn.querySelector('.label').textContent = 'Listening';
+      status.textContent = 'Recording...';
+      isRecording = true;
+
+      await new Promise(resolve => setTimeout(resolve, 5000));
+
+      source.disconnect();
+      scriptNode.disconnect();
+      stream.getTracks().forEach(t => t.stop());
+
+      status.innerHTML = '<span class="spinner"></span> Converting...';
+
+      let totalLen = pcmChunks.reduce((sum, c) => sum + c.length, 0);
+      const pcmData = new Float32Array(totalLen);
+      let offset = 0;
+      for (const chunk of pcmChunks) {
+        pcmData.set(chunk, offset);
+        offset += chunk.length;
+      }
+
+      const numSamples = pcmData.length;
+      const wavBuffer = new ArrayBuffer(44 + numSamples * 2);
+      const view = new DataView(wavBuffer);
+
+      function writeString(offset, str) {
+        for (let i = 0; i < str.length; i++) view.setUint8(offset + i, str.charCodeAt(i));
+      }
+      writeString(0, 'RIFF');
+      view.setUint32(4, 36 + numSamples * 2, true);
+      writeString(8, 'WAVE');
+      writeString(12, 'fmt ');
+      view.setUint32(16, 16, true);
+      view.setUint16(20, 1, true);
+      view.setUint16(22, 1, true);
+      view.setUint32(24, sampleRate, true);
+      view.setUint32(28, sampleRate * 2, true);
+      view.setUint16(32, 2, true);
+      view.setUint16(34, 16, true);
+      writeString(36, 'data');
+      view.setUint32(40, numSamples * 2, true);
+
+      for (let i = 0; i < numSamples; i++) {
+        let s = Math.max(-1, Math.min(1, pcmData[i]));
+        view.setInt16(44 + i * 2, s < 0 ? s * 0x8000 : s * 0x7FFF, true);
+      }
+
+      const wavBlob = new Blob([wavBuffer], { type: 'audio/wav' });
+
+      status.innerHTML = '<span class="spinner"></span> Matching...';
+
+      const formData = new FormData();
+      formData.append('file', wavBlob, 'recording.wav');
+      const res = await fetch('/api/match', { method: 'POST', body: formData });
+      const data = await res.json();
+
+      listenBtn.classList.remove('recording');
+      listenBtn.querySelector('.label').textContent = 'Listen';
+      isRecording = false;
+
+      if (data.error) {
+        status.textContent = 'Error: ' + data.error;
+      } else if (data.match) {
+        resultCard.classList.add('show');
+        songNameResult.textContent = data.match;
+        confidenceResult.textContent = 'Identified';
+        status.textContent = '';
+      } else {
+        status.textContent = 'No match found';
+      }
+
+    } catch (e) {
+      listenBtn.classList.remove('recording');
+      listenBtn.querySelector('.label').textContent = 'Listen';
+      isRecording = false;
+      status.textContent = 'Error: ' + (e.name === 'NotAllowedError' ? 'Microphone access denied' : e.message);
     }
-  } catch (e) {
-    songList.innerHTML = '<li>Error loading songs</li>';
-  }
-}
+  });
 
-document.getElementById('refreshBtn').addEventListener('click', loadLibrary);
-document.querySelector('.tab[data-tab="library"]').addEventListener('click', () => setTimeout(loadLibrary, 100));
+  const songList = document.getElementById('songList');
+  const emptyState = document.getElementById('emptyState');
+
+  async function loadLibrary() {
+    try {
+      const res = await fetch('/api/songs');
+      const data = await res.json();
+      if (data.songs && data.songs.length) {
+        songList.innerHTML = data.songs.map((s, i) =>
+          '<li><span class="num">' + (i+1) + '</span><span class="name">' + s.replace(/</g, '&lt;') + '</span></li>'
+        ).join('');
+        songList.style.display = '';
+        emptyState.style.display = 'none';
+      } else {
+        songList.style.display = 'none';
+        emptyState.style.display = '';
+      }
+    } catch (e) {
+      songList.innerHTML = '<li>Error loading songs</li>';
+    }
+  }
+
+  document.getElementById('refreshBtn').addEventListener('click', loadLibrary);
+  document.querySelector('.tab-btn[data-tab="library"]').addEventListener('click', () => setTimeout(loadLibrary, 100));
+})();
 </script>
 </body>
 </html>

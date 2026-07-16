@@ -1,7 +1,7 @@
 # ♪ Audio Fingerprint
 
 <p>
-  <img src="https://img.shields.io/badge/go-1.26-%2300ADD8">
+  <img src="https://img.shields.io/badge/go-1.22-%2300ADD8">
   <img src="https://img.shields.io/badge/license-MIT-%23a8a29e">
   <img src="https://img.shields.io/badge/status-active-%236b8f5e">
 </p>
@@ -66,11 +66,11 @@ flowchart TB
 
 ## How it works
 
-### 1. Audio decoding — `decode/decode.go`
+### 1. Audio decoding — `internal/audio/decode.go`
 
 WAV files are parsed by reading the RIFF header to extract channel count, sample rate, and bits per sample, then locating the `data` chunk (some files have intermediate `fmt `, `fact`, or `LIST` chunks). Raw PCM samples are converted from `int16` to `float64`, stereo pairs are averaged to mono, and the result is normalised to the `[-1, 1]` range.
 
-### 2. Spectrogram — `fingerprint/spectogram.go`
+### 2. Spectrogram — `internal/fingerprint/spectogram.go`
 
 The normalised samples are divided into overlapping frames using a sliding Hann window:
 
@@ -82,13 +82,13 @@ The normalised samples are divided into overlapping frames using a sliding Hann 
 
 Each windowed frame is run through an FFT (via `gonum`), and the magnitude `√(real² + imag²)` is computed for every frequency bin, producing a 2D time-frequency energy grid. A PNG spectrogram image can be exported for visual inspection.
 
-### 3. Constellation map — `fingerprint/peaks.go`
+### 3. Constellation map — `internal/fingerprint/peaks.go`
 
 Each cell in the spectrogram grid is tested against its neighbours over a rectangular window of `±10` time frames and `±10` frequency bins. If the centre cell is strictly greater than every neighbour and exceeds a minimum magnitude threshold of `0.1`, it is registered as a **peak**. The result is a sparse set of `(time, frequency, magnitude)` points — the constellation map.
 
 Peaks are robust to noise: adding background sound may shift magnitudes but the same prominent peaks survive, which is what makes matching possible from short, noisy recordings.
 
-### 4. Fingerprint hashing — `fingerprint/hash.go`
+### 4. Fingerprint hashing — `internal/fingerprint/hash.go`
 
 Each peak acts as an **anchor**. The next `5` peaks in time order (the fan-out target zone) are paired with the anchor, and for each pair a combined hash is computed:
 
@@ -100,7 +100,7 @@ The bit layout packs ~11 bits for each frequency bin and ~10 bits for the time d
 
 A 3-minute song at 44.1 kHz typically produces tens of thousands of fingerprints. Each fingerprint is a single row in the database.
 
-### 5. Database — `db/db.go`, `store.go`
+### 5. Database — `internal/storage/db.go`, `store.go`
 
 SQLite stores two tables:
 
@@ -115,7 +115,7 @@ songs          fingerprints
 
 The `hash` column is indexed for fast lookup. Fingerprints are inserted in a single transaction with a prepared statement for performance.
 
-### 6. Matching — `db/query.go`
+### 6. Matching — `internal/storage/query.go`
 
 This is the core insight that makes Shazam work. Given a fingerprint set from unknown audio:
 
@@ -126,7 +126,7 @@ This is the core insight that makes Shazam work. Given a fingerprint set from un
 
 Why offset clustering matters: a correct match produces many hash collisions at the same time offset (because the same peaks appear at the same relative positions in both the original and the recording). An incorrect song produces random, scattered offsets. This makes the system highly selective even with short queries.
 
-### 7. Recording — `recorder/record.go`
+### 7. Recording — `internal/audio/record.go`
 
 PortAudio captures raw float64 samples from the default microphone at 44.1 kHz. The output is identical in format to `DecodeWav`, so the same fingerprinting pipeline can process it directly.
 
@@ -152,7 +152,7 @@ PortAudio captures raw float64 samples from the default microphone at 44.1 kHz. 
 
 ```bash
 # Build
-go build -o audio-fp .
+CGO_ENABLED=1 go build -o audio-fp ./cmd/audio-fp/
 
 # Add a song
 ./audio-fp add-song song.wav "Song Name"
@@ -239,26 +239,30 @@ Open `http://localhost:8082`. Three tabs:
 
 ```
 audio/
-├── main.go                 # CLI entry point with subcommands
-├── pipeline/
-│   └── ingest.go           # IngestPipeline, MatchFile, MatchRecording
-├── decode/
-│   └── decode.go           # WAV parsing, stereo-to-mono, normalisation
-├── fingerprint/
-│   ├── spectogram.go       # FFT spectrogram, image export, sine wave generator
-│   ├── peaks.go            # Constellation map peak finding
-│   └── hash.go             # Peak pairing and fingerprint hashing
-├── db/
-│   ├── db.go               # SQLite schema initialisation
-│   ├── store.go            # Insert songs + fingerprints
-│   └── query.go            # Hash lookup with offset alignment scoring
-├── recorder/
-│   └── record.go           # PortAudio microphone capture
-├── webapp/
-│   ├── server.go           # HTTP server with JSON API endpoints
-│   └── static/
-│       └── index.html      # Browser-based recording SPA
-├── fingerprints.db         # SQLite database (auto-created)
+├── cmd/audio-fp/
+│   └── main.go             # CLI entry point with subcommands
+├── internal/
+│   ├── audio/
+│   │   ├── decode.go       # WAV parsing, stereo-to-mono, normalisation
+│   │   └── record.go       # PortAudio microphone capture
+│   ├── fingerprint/
+│   │   ├── spectogram.go   # FFT spectrogram, image export, sine wave generator
+│   │   ├── peaks.go        # Constellation map peak finding
+│   │   └── hash.go         # Peak pairing and fingerprint hashing
+│   ├── pipeline/
+│   │   └── ingest.go       # IngestPipeline, MatchFile, MatchRecording
+│   ├── storage/
+│   │   ├── db.go           # SQLite schema initialisation
+│   │   ├── store.go        # Insert songs + fingerprints
+│   │   └── query.go        # Hash lookup with offset alignment scoring
+│   └── web/
+│       └── server.go       # HTTP server with JSON API endpoints
+├── web/static/
+│   └── index.html          # Browser-based recording SPA
+├── testdata/               # Test files (per-package subdirectories)
+├── fingerprints.db         # SQLite database (auto-created, symlinked)
+├── Dockerfile              # Container image
+├── docker-compose.yml      # Container deployment
 ├── go.mod / go.sum
 └── README.md
 ```
@@ -271,11 +275,11 @@ audio/
 
 | Parameter | Location | Value | Effect |
 |-----------|----------|-------|--------|
-| Window size | `fingerprint/spectogram.go` | 4096 | Frequency resolution per FFT frame |
-| Hop size | `fingerprint/spectogram.go` | 512 | Time resolution (overlap) |
-| Neighbour window | `fingerprint/peaks.go` | ±10 bins | Peak isolation radius |
-| Min magnitude | `fingerprint/peaks.go` | 0.1 | Filters low-energy noise peaks |
-| Fan-out | `fingerprint/hash.go` | 5 | How many target peaks each anchor pairs with |
+| Window size | `internal/fingerprint/spectogram.go` | 4096 | Frequency resolution per FFT frame |
+| Hop size | `internal/fingerprint/spectogram.go` | 512 | Time resolution (overlap) |
+| Neighbour window | `internal/fingerprint/peaks.go` | ±10 bins | Peak isolation radius |
+| Min magnitude | `internal/fingerprint/peaks.go` | 0.1 | Filters low-energy noise peaks |
+| Fan-out | `internal/fingerprint/hash.go` | 5 | How many target peaks each anchor pairs with |
 
 ---
 
@@ -320,7 +324,7 @@ sqlite3 fingerprints.db "
 - [ ] **Database export/import** — share fingerprint databases between instances
 - [ ] **Continuous listening mode** — real-time matching loop from microphone
 - [ ] **Multiple format support** — MP3, FLAC, OGG via `golamext` or ffmpeg piping
-- [ ] **Docker image** — deploy as a containerised service
+- [x] **Docker image** — deploy as a containerised service
 
 ---
 

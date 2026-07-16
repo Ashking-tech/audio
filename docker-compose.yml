@@ -1,0 +1,8 @@
+services:
+  audio-fp:
+    build: .
+    ports:
+      - "8082:8082"
+    volumes:
+      - ./fingerprints.db:/app/fingerprints.db
+    restart: unless-stopped

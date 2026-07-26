@@ -8,6 +8,8 @@
 
 Shazam-style music identification engine built in Go. Recognise songs from short microphone recordings or audio files using spectrogram constellation fingerprinting and offset-aligned hash matching.
 
+![goSound](gosound.png)
+
 ---
 
 ## Features

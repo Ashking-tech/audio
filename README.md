@@ -29,39 +29,73 @@ Shazam-style music identification engine built in Go. Recognise songs from short
 
 ```mermaid
 flowchart TB
-    subgraph Ingest[Ingest pipeline]
-        A1[WAV file] --> D[decode.DecodeWav]
-        A2[Microphone] --> R[recorder.Record]
-        R --> D
-        D --> S[GenerateSpectrogram]
-        S --> P[FindPeaks]
-        P --> H[FingerprintPeaks]
-        H --> ST[db.Insertsong]
+    subgraph Sources["Audio sources"]
+        direction LR
+        WAV[/"WAV file"/]
+        MIC1["Microphone · PortAudio"]
+        MIC2["Browser mic · Web Audio API"]
     end
 
-    ST --> SONGS[(songs)]
-    ST --> FPS[(fingerprints.db)]
-
-    subgraph Query[Query pipeline]
-        Q[Unknown audio] --> QS[GenerateSpectrogram]
-        QS --> QP[FindPeaks]
-        QP --> QH[FingerprintPeaks]
+    subgraph Entries["Entry points"]
+        direction LR
+        CLI["CLI · add-song / match / listen"]
+        WEB["Web UI :8082 · /api/add-song / /api/match"]
     end
 
-    QH --> LK[db.LookUpMatches]
-
-    FPS -.-> LK
-
-    subgraph Matching[Match engine]
-        LK --> OFF[offset = queryTime - dbTime]
-        OFF --> GROUP[Group by song + offset]
-        GROUP --> CLUSTER[Densest cluster wins]
-        CLUSTER --> RESULT[Identified song]
+    subgraph Capture["Capture & decode"]
+        direction LR
+        DEC["audio.DecodeWav<br/>RIFF parse → mono float64"]
+        REC["audio.Record<br/>float64 @ 44.1 kHz"]
     end
 
-    style Ingest fill:#1e1e2e,stroke:#a855f7,color:#fff
-    style Query fill:#1e1e2e,stroke:#ec4899,color:#fff
-    style Matching fill:#1e1e2e,stroke:#22c55e,color:#fff
+    WAV --> DEC
+    MIC1 --> REC
+    MIC2 --> WEB
+    CLI --> DEC
+    CLI --> REC
+    WEB --> DEC
+
+    subgraph Core["Shared fingerprint pipeline"]
+        direction LR
+        SPEC["GenerateSpectogram<br/>Hann 4096 / hop 512"]
+        PEAKS["FindPeaks<br/>±10 bins · min 0.02"]
+        HASH["FingerprintPeaks<br/>fan-out 5 → uint32 hash"]
+        SPEC --> PEAKS --> HASH
+    end
+
+    DEC --> SPEC
+    REC --> SPEC
+
+    subgraph Branches[" "]
+        direction LR
+        subgraph Ingest["Ingest · IngestPipeline"]
+            direction TB
+            INS["storage.Insertsong<br/>+ InsertFingerprints · tx"]
+            SONGS[("songs")]
+            FPS[("fingerprints<br/>hash indexed")]
+            INS --> SONGS
+            INS --> FPS
+        end
+        subgraph Match["Match · MatchFile / MatchRecording"]
+            direction TB
+            LK["storage.LookUpMatches<br/>hash → song_id + anchor_time"]
+            OFF["offset = queryAnchor − dbAnchor"]
+            GRP["Group by song + offset"]
+            WIN{{"Densest cluster wins"}}
+            HIT(["Identified song"])
+            MISS(["No match"])
+            LK --> OFF --> GRP --> WIN
+            WIN -->|votes found| HIT
+            WIN -->|no votes| MISS
+        end
+    end
+
+    HASH --> INS
+    HASH --> LK
+    FPS -.->|"WHERE hash = ?"| LK
+
+    classDef store stroke-dasharray:4 3;
+    class SONGS,FPS store;
 ```
 
 ---

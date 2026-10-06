@@ -1,3 +1,5 @@
 *.md
 *.mp3
 *.db
+# built binary (rebuilt via `go build -o audio-fp ./cmd/audio-fp/`)
+/audio-fp

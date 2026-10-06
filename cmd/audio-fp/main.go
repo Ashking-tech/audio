@@ -13,7 +13,26 @@ import (
 )
 
 func main() {
-	database, err := storage.InitializeDB("fingerprints.db")
+	// -----------------------------------------------------------------------
+	// ORIGINAL (pre-Turso) DB + serve init — kept for reference.
+	//   database, err := storage.InitializeDB("fingerprints.db")
+	//   ...
+	//   case "serve":
+	//       srv := web.NewServer(database, ":8082")
+	//       log.Fatal(srv.Start())
+	// Turso rewrite: InitializeDB itself now branches on TURSO_URL
+	// (see internal/storage/db.go), so main.go only needs to (a) let the
+	// local file path be overridden via DB_PATH for hosts with volumes,
+	// and (b) let the HTTP port come from PORT (Render/Koyeb/Fly set it).
+	// Local default behaviour is unchanged: DB_PATH unset -> "fingerprints.db",
+	// PORT unset -> ":8082".
+	// -----------------------------------------------------------------------
+	dbPath := os.Getenv("DB_PATH")
+	if dbPath == "" {
+		dbPath = "fingerprints.db"
+		// database, err := storage.InitializeDB("fingerprints.db") // original
+	}
+	database, err := storage.InitializeDB(dbPath)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -26,6 +45,11 @@ func main() {
 		fmt.Println("  listen [duration]            — record from mic and match")
 		fmt.Println("  list                         — list all songs")
 		fmt.Println("  serve                        — start the web server")
+		fmt.Println("Env:")
+		fmt.Println("  DB_PATH     — sqlite file path (ignored when TURSO_URL is set)")
+		fmt.Println("  TURSO_URL   — libsql://... (if set, Turso is used instead of sqlite)")
+		fmt.Println("  TURSO_TOKEN — auth token for Turso")
+		fmt.Println("  PORT        — http port for serve (default 8082)")
 		return
 	}
 
@@ -92,7 +116,13 @@ func main() {
 		}
 
 	case "serve":
-		srv := web.NewServer(database, ":8082")
+		// Turso rewrite: honour $PORT on hosted platforms, default 8082 locally.
+		// Original: srv := web.NewServer(database, ":8082")
+		port := os.Getenv("PORT")
+		if port == "" {
+			port = "8082"
+		}
+		srv := web.NewServer(database, ":"+port)
 		log.Fatal(srv.Start())
 
 	default:

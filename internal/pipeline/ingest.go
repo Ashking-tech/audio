@@ -17,7 +17,7 @@ func IngestPipeline(database *sql.DB, path string, songName string) error {
 	spec := fingerprint.Spectogram{WindowSize: 4096, HopSize: 512}
 	spectrogram := spec.GenerateSpectogram(samples)
 
-	peaks := fingerprint.FindPeaks(spectrogram, 10, 0.1)
+	peaks := fingerprint.FindPeaks(spectrogram, 10, 0.02)
 
 	fps := fingerprint.FingerprintPeaks(peaks, 5)
 
@@ -38,7 +38,7 @@ func MatchFile(database *sql.DB, path string) (string, error) {
 	spec := fingerprint.Spectogram{WindowSize: 4096, HopSize: 512}
 	spectrogram := spec.GenerateSpectogram(samples)
 
-	peaks := fingerprint.FindPeaks(spectrogram, 10, 0.1)
+	peaks := fingerprint.FindPeaks(spectrogram, 10, 0.02)
 
 	fps := fingerprint.FingerprintPeaks(peaks, 5)
 
@@ -49,7 +49,7 @@ func MatchRecording(database *sql.DB, samples []float64) (string, error) {
 	spec := fingerprint.Spectogram{WindowSize: 4096, HopSize: 512}
 	spectrogram := spec.GenerateSpectogram(samples)
 
-	peaks := fingerprint.FindPeaks(spectrogram, 10, 0.1)
+	peaks := fingerprint.FindPeaks(spectrogram, 10, 0.02)
 
 	fps := fingerprint.FingerprintPeaks(peaks, 5)
 
